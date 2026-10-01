@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { commitInfoFromEnv, commitInfoFromGit, resolveCommitInfo } from '../../src/lib/commit-info'
+import { commitInfoFromEnv, commitInfoFromGit, resolveCommitInfo } from '@/lib/commit-info'
 
 const HASH = 'abcdef0123456789abcdef0123456789abcdef01'
 const fullEnv = {

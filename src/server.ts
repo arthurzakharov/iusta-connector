@@ -1,7 +1,7 @@
-import { createApp } from './app'
-import { parseEnv } from './config/env'
-import { resolveCommitInfo } from './lib/commit-info'
-import { createLogger } from './lib/logger'
+import { createApp } from '@/app'
+import { parseEnv } from '@/config/env'
+import { resolveCommitInfo } from '@/lib/commit-info'
+import { createLogger } from '@/lib/logger'
 
 const env = parseEnv(process.env)
 const logger = createLogger({ level: env.LOG_LEVEL, pretty: env.NODE_ENV === 'development' })

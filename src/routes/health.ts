@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import type { CommitInfo } from '../lib/commit-info'
+import type { CommitInfo } from '@/lib/commit-info'
 
 export type HealthResponse = {
   status: 'ok'

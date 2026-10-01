@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildLoggerOptions, createLogger } from '../../src/lib/logger'
+import { buildLoggerOptions, createLogger } from '@/lib/logger'
 
 describe('logger', () => {
   test('uses JSON output without a transport when pretty is disabled', () => {

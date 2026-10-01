@@ -1,5 +1,5 @@
 import pino from 'pino'
-import type { Logger } from '../../src/lib/logger'
+import type { Logger } from '@/lib/logger'
 
 export type LogEntry = Record<string, unknown> & { level: number; msg: string }
 

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { testClient } from 'hono/testing'
-import { createApp } from '../../src/app'
-import { commitInfoFixture } from '../helpers/fixtures'
-import { createTestLogger } from '../helpers/logger'
+import { createApp } from '@/app'
+import { commitInfoFixture } from '@tests/helpers/fixtures'
+import { createTestLogger } from '@tests/helpers/logger'
 
 describe('health routes', () => {
   for (const path of ['/health', '/']) {

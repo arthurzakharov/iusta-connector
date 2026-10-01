@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { Hono } from 'hono'
 import { requestId } from 'hono/request-id'
-import { requestLogger } from '../../src/middleware/request-logger'
-import { createTestLogger } from '../helpers/logger'
+import { requestLogger } from '@/middleware/request-logger'
+import { createTestLogger } from '@tests/helpers/logger'
 
 const LEVEL = { info: 30, warn: 40, error: 50 } as const
 

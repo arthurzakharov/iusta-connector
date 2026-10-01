@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { parseEnv } from '../../src/config/env'
+import { parseEnv } from '@/config/env'
 
 describe('parseEnv', () => {
   test('applies defaults', () => {

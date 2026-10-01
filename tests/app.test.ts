@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { createApp } from '../src/app'
-import { createTestLogger } from './helpers/logger'
+import { createApp } from '@/app'
+import { createTestLogger } from '@tests/helpers/logger'
 
 describe('app', () => {
   test('returns JSON 404 for unknown routes', async () => {
