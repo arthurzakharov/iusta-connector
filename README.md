@@ -24,8 +24,10 @@ Commit info comes from `GIT_COMMIT_*` env vars (set as Docker build args), falli
 ## Docker
 
 ```sh
-bun run docker:build
-docker run -p 3000:3000 iusta-connector
+bun run docker:build   # build image `iusta-connector` with current commit info
+bun run docker:run     # start container `iusta-connector` on port 3000 (replaces a running one)
+bun run docker:logs    # follow logs
+bun run docker:stop    # stop (container is removed automatically)
 ```
 
 ## Typed client for frontends
