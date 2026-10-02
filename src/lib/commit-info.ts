@@ -1,6 +1,3 @@
-import { HttpError, UnexpectedResponseError } from "@/api/http-client";
-import type { Logger } from "@/lib/logger-types";
-import { RepositoryApi } from "@/api/repository-api";
 import type { CommitInfo } from "@/types/responses";
 
 /** Commit-related env vars; the parsed `Env` from `@/config/env` satisfies it. */
@@ -9,8 +6,6 @@ type CommitEnv = {
   GIT_COMMIT_MESSAGE?: string | undefined;
   GIT_COMMIT_AUTHOR?: string | undefined;
   GIT_COMMIT_DATE?: string | undefined;
-  GIT_REPOSITORY_NAME?: string | undefined;
-  GIT_REPOSITORY_TOKEN?: string | undefined;
 };
 
 function toCommitInfo(
@@ -83,76 +78,14 @@ export function commitInfoFromGit(cwd?: string): CommitInfo | null {
   }
 }
 
-type RemoteCommitParams = {
-  repository: string;
-  hash: string;
-  token?: string | undefined;
-  logger: Logger;
-};
-
-/**
- * Looks up a commit in the remote repository API (used when only the commit hash is known).
- */
-export async function commitInfoFromRemote({
-  repository,
-  hash,
-  token,
-  logger,
-}: RemoteCommitParams): Promise<CommitInfo | null> {
-  const api = new RepositoryApi({ repository, token });
-
-  try {
-    const commit = await api.getCommit(hash);
-    const subject = commit.message.split("\n", 1)[0] ?? "";
-    return toCommitInfo(commit.hash, subject, commit.author, commit.date);
-  } catch (err) {
-    if (err instanceof HttpError) {
-      const rateLimit = api.rateLimit(err);
-      logger.warn(
-        {
-          status: err.status,
-          rateLimitRemaining: rateLimit.remaining,
-          rateLimitReset: rateLimit.reset,
-          authenticated: Boolean(token),
-        },
-        "remote commit lookup failed",
-      );
-    } else if (err instanceof UnexpectedResponseError) {
-      logger.warn("remote commit lookup returned an unexpected payload");
-    } else {
-      logger.warn({ err }, "remote commit lookup request failed");
-    }
-    return null;
-  }
-}
-
-type ResolveCommitInfoParams = {
-  cwd?: string;
-  logger: Logger;
-};
-
 /**
  * Get commit info. Resolution order:
  * 1. GIT_COMMIT_* env vars (baked into the image at build time)
  * 2. local git repository (development)
- * 3. remote repository API using GIT_COMMIT_HASH + GIT_REPOSITORY_NAME (when only the hash is known)
  */
-export async function resolveCommitInfo(
+export function resolveCommitInfo(
   env: CommitEnv,
-  { cwd, logger }: ResolveCommitInfoParams,
-): Promise<CommitInfo | null> {
-  const local = commitInfoFromEnv(env) ?? commitInfoFromGit(cwd);
-
-  if (local) return local;
-
-  const { GIT_COMMIT_HASH, GIT_REPOSITORY_NAME, GIT_REPOSITORY_TOKEN } = env;
-
-  if (!GIT_COMMIT_HASH || !GIT_REPOSITORY_NAME) return null;
-
-  return commitInfoFromRemote({
-    repository: GIT_REPOSITORY_NAME,
-    hash: GIT_COMMIT_HASH,
-    token: GIT_REPOSITORY_TOKEN,
-    logger,
-  });
+  cwd?: string,
+): CommitInfo | null {
+  return commitInfoFromEnv(env) ?? commitInfoFromGit(cwd);
 }

@@ -1,25 +1,12 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   commitInfoFromEnv,
   commitInfoFromGit,
-  commitInfoFromRemote,
   resolveCommitInfo,
 } from "@/lib/commit-info";
-import { createTestLogger } from "@tests/helpers/logger";
-
-const { logger } = createTestLogger();
 
 const HASH = "abcdef0123456789abcdef0123456789abcdef01";
 const fullEnv = {
@@ -104,176 +91,16 @@ describe("commitInfoFromGit", () => {
   });
 });
 
-const remoteCommit = {
-  sha: HASH,
-  commit: {
-    message: "feat: deployed commit\n\nLonger description body",
-    author: { name: "Remote Author" },
-    committer: { date: "2026-10-02T09:15:00Z" },
-  },
-};
-
-type FetchCall = { url: string; init?: RequestInit | undefined };
-
-/** Replaces the global fetch for one test; restored in afterEach. */
-function mockFetch(response: () => Response | Promise<Response>) {
-  const calls: FetchCall[] = [];
-  spyOn(globalThis, "fetch").mockImplementation((async (
-    url: string | URL | Request,
-    init?: RequestInit,
-  ) => {
-    calls.push({
-      url: url instanceof Request ? url.url : url.toString(),
-      init,
-    });
-    return response();
-  }) as typeof fetch);
-  return { calls };
-}
-
-afterEach(() => {
-  mock.restore();
-});
-
-describe("commitInfoFromRemote", () => {
-  test("maps the remote commit using only the first line of the message", async () => {
-    const { calls } = mockFetch(() => Response.json(remoteCommit));
-
-    const info = await commitInfoFromRemote({
-      repository: "acme/repo",
-      hash: HASH,
-      logger,
-    });
-
-    expect(info).toEqual({
-      hash: HASH,
-      shortHash: "abcdef0",
-      message: "feat: deployed commit",
-      author: "Remote Author",
-      date: "2026-10-02T09:15:00Z",
-    });
-    expect(calls[0]?.url).toBe(
-      `https://api.github.com/repos/acme/repo/commits/${HASH}`,
-    );
-    expect(new Headers(calls[0]?.init?.headers).has("Authorization")).toBe(
-      false,
-    );
-  });
-
-  test("sends a bearer token when provided", async () => {
-    const { calls } = mockFetch(() => Response.json(remoteCommit));
-
-    await commitInfoFromRemote({
-      repository: "acme/repo",
-      hash: HASH,
-      token: "secret",
-      logger,
-    });
-
-    expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBe(
-      "Bearer secret",
-    );
-  });
-
-  test("returns null and logs status and rate limit for non-2xx responses", async () => {
-    const { logger, entries } = createTestLogger();
-    mockFetch(
-      () =>
-        new Response("rate limited", {
-          status: 403,
-          headers: {
-            "x-ratelimit-remaining": "0",
-            "x-ratelimit-reset": "1759400000",
-          },
-        }),
-    );
-
-    expect(
-      await commitInfoFromRemote({
-        repository: "acme/repo",
-        hash: HASH,
-        logger,
-      }),
-    ).toBeNull();
-    expect(entries[0]).toMatchObject({
-      msg: "remote commit lookup failed",
-      status: 403,
-      rateLimitRemaining: "0",
-      rateLimitReset: "1759400000",
-      authenticated: false,
-    });
-  });
-
-  test("returns null and logs unexpected payloads", async () => {
-    const { logger, entries } = createTestLogger();
-    mockFetch(() => Response.json({ sha: HASH }));
-
-    expect(
-      await commitInfoFromRemote({
-        repository: "acme/repo",
-        hash: HASH,
-        logger,
-      }),
-    ).toBeNull();
-    expect(entries[0]?.msg).toBe(
-      "remote commit lookup returned an unexpected payload",
-    );
-  });
-
-  test("returns null and logs the error when the request fails", async () => {
-    const { logger, entries } = createTestLogger();
-    mockFetch(() => Promise.reject(new Error("network down")));
-
-    expect(
-      await commitInfoFromRemote({
-        repository: "acme/repo",
-        hash: HASH,
-        logger,
-      }),
-    ).toBeNull();
-    expect(entries[0]).toMatchObject({
-      msg: "remote commit lookup request failed",
-      err: { message: "network down" },
-    });
-  });
-});
-
 describe("resolveCommitInfo", () => {
-  const remoteEnv = {
-    GIT_REPOSITORY_NAME: "acme/repo",
-    GIT_COMMIT_HASH: HASH,
-  };
-
-  test("prefers env variables over git", async () => {
-    expect(
-      (await resolveCommitInfo(fullEnv, { cwd: repoDir, logger }))?.author,
-    ).toBe("Env Author");
+  test("prefers env variables over git", () => {
+    expect(resolveCommitInfo(fullEnv, repoDir)?.author).toBe("Env Author");
   });
 
-  test("falls back to git when env variables are missing", async () => {
-    expect(
-      (await resolveCommitInfo({}, { cwd: repoDir, logger }))?.author,
-    ).toBe("Git Author");
+  test("falls back to git when env variables are missing", () => {
+    expect(resolveCommitInfo({}, repoDir)?.author).toBe("Git Author");
   });
 
-  test("falls back to the remote repository when only the commit hash is known and git is unavailable", async () => {
-    const { calls } = mockFetch(() => Response.json(remoteCommit));
-
-    const info = await resolveCommitInfo(
-      { ...remoteEnv, GIT_REPOSITORY_TOKEN: "secret" },
-      { cwd: emptyDir, logger },
-    );
-
-    expect(info?.author).toBe("Remote Author");
-    expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBe(
-      "Bearer secret",
-    );
-  });
-
-  test("returns null without remote repository variables and without git", async () => {
-    const { calls } = mockFetch(() => Response.json(remoteCommit));
-
-    expect(await resolveCommitInfo({}, { cwd: emptyDir, logger })).toBeNull();
-    expect(calls).toHaveLength(0);
+  test("returns null without env variables and without git", () => {
+    expect(resolveCommitInfo({}, emptyDir)).toBeNull();
   });
 });

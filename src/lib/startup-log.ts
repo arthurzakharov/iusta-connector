@@ -27,7 +27,7 @@ export function logServerStart(
   );
   if (!commitInfo) {
     logger.warn(
-      "commit info unavailable: pass GIT_COMMIT_* build args, run inside a git repository, or check GIT_REPOSITORY_NAME and GIT_REPOSITORY_TOKEN",
+      "commit info unavailable: pass GIT_COMMIT_* build args or run inside a git repository",
     );
   }
 }

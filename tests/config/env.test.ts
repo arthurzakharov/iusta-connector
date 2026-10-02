@@ -20,8 +20,6 @@ describe("parseEnv", () => {
         LOG_LEVEL: "warn",
         LOG_FORMAT: "pretty",
         ALLOWED_ORIGINS: " https://app.example.com, http://localhost:5173 ,",
-        GIT_REPOSITORY_NAME: "acme/repo",
-        GIT_REPOSITORY_TOKEN: "secret",
       }),
     ).toEqual({
       NODE_ENV: "production",
@@ -29,23 +27,16 @@ describe("parseEnv", () => {
       LOG_LEVEL: "warn",
       LOG_FORMAT: "pretty",
       ALLOWED_ORIGINS: ["https://app.example.com", "http://localhost:5173"],
-      GIT_REPOSITORY_NAME: "acme/repo",
-      GIT_REPOSITORY_TOKEN: "secret",
     });
   });
 
-  test("requires deployment variables in production", () => {
+  test("requires ALLOWED_ORIGINS in production", () => {
     expect(() => parseEnv({ NODE_ENV: "production" })).toThrow(
-      /ALLOWED_ORIGINS[\s\S]*GIT_REPOSITORY_NAME[\s\S]*GIT_REPOSITORY_TOKEN/,
+      /required in production[\s\S]*ALLOWED_ORIGINS/,
     );
     expect(() =>
-      parseEnv({
-        NODE_ENV: "production",
-        ALLOWED_ORIGINS: "https://app.example.com",
-        GIT_REPOSITORY_NAME: "",
-        GIT_REPOSITORY_TOKEN: "secret",
-      }),
-    ).toThrow(/required in production[\s\S]*GIT_REPOSITORY_NAME/);
+      parseEnv({ NODE_ENV: "production", ALLOWED_ORIGINS: " , " }),
+    ).toThrow(/required in production[\s\S]*ALLOWED_ORIGINS/);
   });
 
   test("does not require deployment variables outside production", () => {

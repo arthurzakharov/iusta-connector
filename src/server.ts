@@ -12,7 +12,7 @@ const logger = createLogger({
   pretty: env.LOG_FORMAT === "pretty",
 });
 
-const commitInfo = await resolveCommitInfo(env, { logger });
+const commitInfo = resolveCommitInfo(env);
 
 const app = createApp({
   logger,
