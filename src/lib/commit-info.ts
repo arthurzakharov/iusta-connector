@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Logger } from "@/lib/logger";
 
 export type CommitInfo = {
   hash: string;
@@ -85,6 +86,7 @@ export type GitHubCommitOptions = {
   token?: string | undefined;
   timeoutMs?: number;
   fetch?: FetchFn;
+  logger?: Logger | undefined;
 };
 
 const gitHubCommitSchema = z.object({
@@ -103,6 +105,7 @@ export async function commitInfoFromGitHub({
   token,
   timeoutMs = 3000,
   fetch = globalThis.fetch,
+  logger,
 }: GitHubCommitOptions): Promise<CommitInfo | null> {
   try {
     const res = await fetch(
@@ -116,10 +119,24 @@ export async function commitInfoFromGitHub({
         signal: AbortSignal.timeout(timeoutMs),
       },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      logger?.warn(
+        {
+          status: res.status,
+          rateLimitRemaining: res.headers.get("x-ratelimit-remaining"),
+          rateLimitReset: res.headers.get("x-ratelimit-reset"),
+          authenticated: Boolean(token),
+        },
+        "GitHub commit lookup failed",
+      );
+      return null;
+    }
 
     const parsed = gitHubCommitSchema.safeParse(await res.json());
-    if (!parsed.success) return null;
+    if (!parsed.success) {
+      logger?.warn("GitHub commit lookup returned an unexpected payload");
+      return null;
+    }
 
     const { sha: hash, commit } = parsed.data;
     const subject = commit.message.split("\n", 1)[0] ?? "";
@@ -129,7 +146,8 @@ export async function commitInfoFromGitHub({
       commit.author.name,
       commit.committer.date,
     );
-  } catch {
+  } catch (err) {
+    logger?.warn({ err }, "GitHub commit lookup request failed");
     return null;
   }
 }
@@ -137,6 +155,7 @@ export async function commitInfoFromGitHub({
 export type ResolveCommitInfoOptions = {
   cwd?: string;
   fetch?: FetchFn;
+  logger?: Logger;
 };
 
 /**
@@ -147,7 +166,7 @@ export type ResolveCommitInfoOptions = {
  */
 export async function resolveCommitInfo(
   env: EnvSource,
-  { cwd, fetch }: ResolveCommitInfoOptions = {},
+  { cwd, fetch, logger }: ResolveCommitInfoOptions = {},
 ): Promise<CommitInfo | null> {
   const local = commitInfoFromEnv(env) ?? commitInfoFromGit(cwd);
   if (local) return local;
@@ -159,6 +178,7 @@ export async function resolveCommitInfo(
     repoSlug: RENDER_GIT_REPO_SLUG,
     sha: RENDER_GIT_COMMIT,
     token: GITHUB_TOKEN,
+    logger,
     ...(fetch && { fetch }),
   });
 }

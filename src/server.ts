@@ -9,7 +9,7 @@ const logger = createLogger({
   pretty: env.NODE_ENV === "development",
 });
 
-const commitInfo = await resolveCommitInfo(process.env);
+const commitInfo = await resolveCommitInfo(process.env, { logger });
 
 if (!commitInfo) {
   logger.warn(

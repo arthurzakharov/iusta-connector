@@ -8,6 +8,7 @@ import {
   commitInfoFromGitHub,
   resolveCommitInfo,
 } from "@/lib/commit-info";
+import { createTestLogger } from "@tests/helpers/logger";
 
 const HASH = "abcdef0123456789abcdef0123456789abcdef01";
 const fullEnv = {
@@ -147,25 +148,76 @@ describe("commitInfoFromGitHub", () => {
     );
   });
 
-  test("returns null for non-2xx responses", async () => {
+  test("returns null and logs status and rate limit for non-2xx responses", async () => {
+    const { logger, entries } = createTestLogger();
     const { fetch } = mockFetch(
-      () => new Response("Not Found", { status: 404 }),
+      () =>
+        new Response("rate limited", {
+          status: 403,
+          headers: {
+            "x-ratelimit-remaining": "0",
+            "x-ratelimit-reset": "1759400000",
+          },
+        }),
     );
+
     expect(
-      await commitInfoFromGitHub({ repoSlug: "acme/repo", sha: HASH, fetch }),
+      await commitInfoFromGitHub({
+        repoSlug: "acme/repo",
+        sha: HASH,
+        fetch,
+        logger,
+      }),
     ).toBeNull();
+    expect(entries[0]).toMatchObject({
+      msg: "GitHub commit lookup failed",
+      status: 403,
+      rateLimitRemaining: "0",
+      rateLimitReset: "1759400000",
+      authenticated: false,
+    });
   });
 
-  test("returns null for unexpected payloads", async () => {
+  test("returns null and logs unexpected payloads", async () => {
+    const { logger, entries } = createTestLogger();
     const { fetch } = mockFetch(() => Response.json({ sha: HASH }));
+
     expect(
-      await commitInfoFromGitHub({ repoSlug: "acme/repo", sha: HASH, fetch }),
+      await commitInfoFromGitHub({
+        repoSlug: "acme/repo",
+        sha: HASH,
+        fetch,
+        logger,
+      }),
     ).toBeNull();
+    expect(entries[0]?.msg).toBe(
+      "GitHub commit lookup returned an unexpected payload",
+    );
   });
 
-  test("returns null when the request fails", async () => {
+  test("returns null and logs the error when the request fails", async () => {
+    const { logger, entries } = createTestLogger();
     const { fetch } = mockFetch(() =>
       Promise.reject(new Error("network down")),
+    );
+
+    expect(
+      await commitInfoFromGitHub({
+        repoSlug: "acme/repo",
+        sha: HASH,
+        fetch,
+        logger,
+      }),
+    ).toBeNull();
+    expect(entries[0]).toMatchObject({
+      msg: "GitHub commit lookup request failed",
+      err: { message: "network down" },
+    });
+  });
+
+  test("does not require a logger", async () => {
+    const { fetch } = mockFetch(
+      () => new Response("Not Found", { status: 404 }),
     );
     expect(
       await commitInfoFromGitHub({ repoSlug: "acme/repo", sha: HASH, fetch }),
