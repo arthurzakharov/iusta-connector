@@ -1,14 +1,14 @@
-import pino, { type LevelWithSilent, type LoggerOptions } from "pino";
+import pino, { type LevelWithSilent } from "pino";
 
-export type LoggerConfig = {
+interface LoggerConfig {
   level: LevelWithSilent;
   pretty: boolean;
-};
+}
 
-export function buildLoggerOptions({
-  level,
-  pretty,
-}: LoggerConfig): LoggerOptions {
+/**
+ * Create configuration for pino logger
+ */
+export function buildLoggerOptions({ level, pretty }: LoggerConfig) {
   return {
     level,
     base: { service: "iusta-connector" },
@@ -20,6 +20,9 @@ export function buildLoggerOptions({
   };
 }
 
-export function createLogger(config: LoggerConfig): pino.Logger {
+/**
+ * Create instance of pino logger.
+ */
+export function createLogger(config: LoggerConfig) {
   return pino(buildLoggerOptions(config));
 }
