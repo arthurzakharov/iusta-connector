@@ -8,7 +8,7 @@ interface LoggerConfig {
 /**
  * Create configuration for pino logger
  */
-export function buildLoggerOptions({ level, pretty }: LoggerConfig) {
+export function buildLoggerOptions({ level, pretty }: LoggerConfig): pino.LoggerOptions {
   return {
     level,
     base: { service: "iusta-connector" },
@@ -23,6 +23,6 @@ export function buildLoggerOptions({ level, pretty }: LoggerConfig) {
 /**
  * Create instance of pino logger.
  */
-export function createLogger(config: LoggerConfig) {
+export function createLogger(config: LoggerConfig): pino.Logger {
   return pino(buildLoggerOptions(config));
 }

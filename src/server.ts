@@ -12,7 +12,7 @@ const logger = createLogger({
   pretty: env.NODE_ENV === "development",
 });
 
-const commitInfo = await resolveCommitInfo(process.env, { logger });
+const commitInfo = await resolveCommitInfo(env, { logger });
 
 const app = createApp({
   logger,

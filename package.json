@@ -15,7 +15,7 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "docker:build": "docker build --build-arg GIT_COMMIT_HASH=\"$(git rev-parse HEAD)\" --build-arg GIT_COMMIT_MESSAGE=\"$(git log -1 --format=%s)\" --build-arg GIT_COMMIT_AUTHOR=\"$(git log -1 --format=%an)\" --build-arg GIT_COMMIT_DATE=\"$(git log -1 --format=%cI)\" -t iusta-connector .",
-    "docker:run": "docker rm -f iusta-connector >/dev/null 2>&1; docker run -d --rm --name iusta-connector -p 3000:3000 iusta-connector",
+    "docker:run": "docker rm -f iusta-connector >/dev/null 2>&1; docker run -d --rm --name iusta-connector --env-file .env.docker -p 3000:3000 iusta-connector",
     "docker:stop": "docker stop iusta-connector",
     "docker:logs": "docker logs -f iusta-connector",
     "typecheck": "tsc --noEmit",

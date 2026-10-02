@@ -10,14 +10,22 @@ export type CommitInfo = {
   date: string;
 };
 
-type EnvSource = Record<string, string | undefined>;
+/** Commit-related env vars; the parsed `Env` from `@/config/env` satisfies it. */
+type CommitEnv = {
+  GIT_COMMIT_HASH?: string | undefined;
+  GIT_COMMIT_MESSAGE?: string | undefined;
+  GIT_COMMIT_AUTHOR?: string | undefined;
+  GIT_COMMIT_DATE?: string | undefined;
+  GIT_REPOSITORY_NAME?: string | undefined;
+  GIT_REPOSITORY_TOKEN?: string | undefined;
+};
 
-export function getCommitInfo(
+function toCommitInfo(
   hash: string,
   message: string,
   author: string,
   date: string,
-) {
+): CommitInfo {
   return {
     hash,
     shortHash: hash.slice(0, 7),
@@ -30,7 +38,7 @@ export function getCommitInfo(
 /**
  * Reads commit info injected at build time (e.g. Docker build args).
  */
-export function commitInfoFromEnv(env: EnvSource) {
+export function commitInfoFromEnv(env: CommitEnv): CommitInfo | null {
   const {
     GIT_COMMIT_HASH,
     GIT_COMMIT_MESSAGE,
@@ -45,7 +53,7 @@ export function commitInfoFromEnv(env: EnvSource) {
   ) {
     return null;
   }
-  return getCommitInfo(
+  return toCommitInfo(
     GIT_COMMIT_HASH,
     GIT_COMMIT_MESSAGE,
     GIT_COMMIT_AUTHOR,
@@ -56,7 +64,7 @@ export function commitInfoFromEnv(env: EnvSource) {
 /**
  * Reads the last commit from the local git repository (development fallback).
  */
-export function commitInfoFromGit(cwd?: string) {
+export function commitInfoFromGit(cwd?: string): CommitInfo | null {
   const FIELD_SEPARATOR = "\x1f";
 
   try {
@@ -76,7 +84,7 @@ export function commitInfoFromGit(cwd?: string) {
       .trim()
       .split(FIELD_SEPARATOR);
     if (!hash || !message || !author || !date) return null;
-    return getCommitInfo(hash, message, author, date);
+    return toCommitInfo(hash, message, author, date);
   } catch {
     return null;
   }
@@ -97,13 +105,13 @@ export async function commitInfoFromRemote({
   hash,
   token,
   logger,
-}: RemoteCommitParams) {
+}: RemoteCommitParams): Promise<CommitInfo | null> {
   const api = new RepositoryApi({ repository, token });
 
   try {
     const commit = await api.getCommit(hash);
     const subject = commit.message.split("\n", 1)[0] ?? "";
-    return getCommitInfo(commit.hash, subject, commit.author, commit.date);
+    return toCommitInfo(commit.hash, subject, commit.author, commit.date);
   } catch (err) {
     if (err instanceof HttpError) {
       const rateLimit = api.rateLimit(err);
@@ -132,14 +140,14 @@ type ResolveCommitInfoParams = {
 
 /**
  * Get commit info. Resolution order:
- * 1. local Docker env vars (development)
+ * 1. GIT_COMMIT_* env vars (baked into the image at build time)
  * 2. local git repository (development)
  * 3. remote repository API using GIT_COMMIT_HASH + GIT_REPOSITORY_NAME (when only the hash is known)
  */
 export async function resolveCommitInfo(
-  env: EnvSource,
+  env: CommitEnv,
   { cwd, logger }: ResolveCommitInfoParams,
-) {
+): Promise<CommitInfo | null> {
   const local = commitInfoFromEnv(env) ?? commitInfoFromGit(cwd);
 
   if (local) return local;
