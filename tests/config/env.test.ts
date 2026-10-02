@@ -18,13 +18,36 @@ describe("parseEnv", () => {
         PORT: "8080",
         LOG_LEVEL: "warn",
         ALLOWED_ORIGINS: " https://app.example.com, http://localhost:5173 ,",
+        GIT_REPOSITORY_NAME: "acme/repo",
+        GIT_REPOSITORY_TOKEN: "secret",
       }),
     ).toEqual({
       NODE_ENV: "production",
       PORT: 8080,
       LOG_LEVEL: "warn",
       ALLOWED_ORIGINS: ["https://app.example.com", "http://localhost:5173"],
+      GIT_REPOSITORY_NAME: "acme/repo",
+      GIT_REPOSITORY_TOKEN: "secret",
     });
+  });
+
+  test("requires deployment variables in production", () => {
+    expect(() => parseEnv({ NODE_ENV: "production" })).toThrow(
+      /ALLOWED_ORIGINS[\s\S]*GIT_REPOSITORY_NAME[\s\S]*GIT_REPOSITORY_TOKEN/,
+    );
+    expect(() =>
+      parseEnv({
+        NODE_ENV: "production",
+        ALLOWED_ORIGINS: "https://app.example.com",
+        GIT_REPOSITORY_NAME: "",
+        GIT_REPOSITORY_TOKEN: "secret",
+      }),
+    ).toThrow(/required in production[\s\S]*GIT_REPOSITORY_NAME/);
+  });
+
+  test("does not require deployment variables outside production", () => {
+    expect(() => parseEnv({ NODE_ENV: "development" })).not.toThrow();
+    expect(() => parseEnv({ NODE_ENV: "test" })).not.toThrow();
   });
 
   test("normalises origins to what browsers send (no trailing slash or path)", () => {
