@@ -6,15 +6,17 @@ import type { Logger } from "@/lib/logger-types";
 import { requestLogger } from "@/middleware/request-logger";
 import { createHealthRoutes } from "@/routes/health";
 
-type AppDeps = {
+type CreateAppParams = {
   logger: Logger;
   commitInfo: CommitInfo | null;
   allowedOrigins?: string[];
 };
 
-export function createApp(params: AppDeps) {
-  const { logger, commitInfo, allowedOrigins = [] } = params;
-
+export function createApp({
+  logger,
+  commitInfo,
+  allowedOrigins = [],
+}: CreateAppParams) {
   const app = new Hono();
 
   app.use(requestId());

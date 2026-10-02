@@ -113,6 +113,34 @@ git tag v0.2.0 && git push origin v0.2.0
 The `Publish client` workflow runs all checks, builds `dist-client/` and publishes `@arthurzakharov/iusta-connector-client@0.2.0`.
 Use `bun run client:verify` locally to build the package and type-check it the way a frontend would.
 
+## Code style
+
+Rules marked **(enforced)** fail `bun run check`, and therefore CI.
+
+**Formatting and imports**
+
+- Prettier formats everything: double quotes, semicolons, trailing commas, 80 columns **(enforced)**.
+- Import from `src` with `@/…` and from `tests` with `@tests/…`; use `import type` for type-only imports **(enforced)**.
+- Import concrete files, not folders: there are no `index.ts` barrel files, because the client build cannot resolve them.
+
+**Types**
+
+- Use `type`, not `interface` **(enforced)**.
+- Exported functions and public methods declare their return type **(enforced)**. Exception: `src/app.ts`, `src/routes/**` and `src/client.ts`, where Hono infers the route types that become `AppType` and the client types.
+- Name the object argument of a function `<FunctionName>Params` (e.g. `CreateAppParams`) and of a class constructor `<ClassName>Constructor` (e.g. `HttpClientConstructor`).
+- Destructure object arguments in the signature. Pass the object on unchanged only when the function just forwards it.
+- An optional property that callers may set to `undefined` is typed `name?: T | undefined` (`exactOptionalPropertyTypes` is on).
+- Only export what another file uses.
+
+**Structure**
+
+- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing. File names are kebab-case.
+- Pass dependencies such as the logger as arguments (no singletons); the logger is always required.
+- Use a class only when there is shared state (e.g. `HttpClient`, `RepositoryApi`); mark members `public` or `private` explicitly, without `#` fields. Stateless logic stays in plain functions.
+- Await or return every promise **(enforced)**.
+- Keep names platform-neutral (no GitHub/GitLab/Render names); host-specific details live in `src/api/repository-api.ts`.
+- Tests mirror `src/` under `tests/`; coverage must stay at 100% **(enforced)**.
+
 ## Adding an endpoint
 
 1. Create `src/routes/<name>.ts` exporting a chained `new Hono()` router.

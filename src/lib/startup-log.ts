@@ -2,7 +2,7 @@ import type { Env } from "@/config/env";
 import type { CommitInfo } from "@/lib/commit-info";
 import type { Logger } from "@/lib/logger-types";
 
-type Params = {
+type LogServerStartParams = {
   env: Env;
   commitInfo: CommitInfo | null;
 };
@@ -12,17 +12,20 @@ type Params = {
  * commit information is not available. Missing commit information will cause
  * incomplete response to GET /health endpoint.
  */
-export function logServerStart(logger: Logger, params: Params): void {
+export function logServerStart(
+  logger: Logger,
+  { env, commitInfo }: LogServerStartParams,
+): void {
   logger.info(
     {
-      port: params.env.PORT,
-      env: params.env.NODE_ENV,
-      commit: params.commitInfo?.shortHash ?? null,
-      allowedOrigins: params.env.ALLOWED_ORIGINS,
+      port: env.PORT,
+      env: env.NODE_ENV,
+      commit: commitInfo?.shortHash ?? null,
+      allowedOrigins: env.ALLOWED_ORIGINS,
     },
     "server started",
   );
-  if (!params.commitInfo) {
+  if (!commitInfo) {
     logger.warn(
       "commit info unavailable: pass GIT_COMMIT_* build args, run inside a git repository, or check GIT_REPOSITORY_NAME and GIT_REPOSITORY_TOKEN",
     );

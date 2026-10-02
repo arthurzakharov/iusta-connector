@@ -12,7 +12,7 @@ type HttpClientConstructor = {
   fetch?: FetchFn;
 };
 
-type RequestOptions = {
+type RequestParams = {
   method: string;
   body?: string;
   headers?: Record<string, string>;
@@ -78,7 +78,7 @@ export class HttpClient {
   private async request<T>(
     path: string,
     schema: Schema<T>,
-    { headers, ...init }: RequestOptions,
+    { headers, ...init }: RequestParams,
   ): Promise<T> {
     const fetch = this.fetchFn;
     const res = await fetch(`${this.baseUrl}${path}`, {
