@@ -4,13 +4,16 @@ Connector between our frontend applications and iusta. Built with [Bun](https://
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `bun install` | Install dependencies |
-| `bun run dev` | Start with watch mode and pretty logs |
-| `bun run start` | Start the server |
-| `bun test` | Run tests with coverage (fails below 100% lines/functions) |
-| `bun run typecheck` | Type-check with `tsc` |
+| Command                | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `bun install`          | Install dependencies                                         |
+| `bun run dev`          | Start with watch mode and pretty logs                        |
+| `bun run start`        | Start the server                                             |
+| `bun test`             | Run tests with coverage (fails below 100% lines/functions)   |
+| `bun run typecheck`    | Type-check with `tsc`                                        |
+| `bun run format`       | Format all files with Prettier                               |
+| `bun run format:check` | Verify formatting (for CI)                                   |
+| `bun run check`        | Format check + typecheck + tests — run before pushing        |
 | `bun run docker:build` | Build the Docker image with the current commit info baked in |
 
 Configuration is read from env vars and validated on startup (see `src/config/env.ts` and `.env.example`).
@@ -37,11 +40,11 @@ bun run docker:stop    # stop (container is removed automatically)
 ## Typed client for frontends
 
 ```ts
-import { hc } from 'hono/client'
-import type { AppType } from 'iusta-connector'
+import { hc } from "hono/client";
+import type { AppType } from "iusta-connector";
 
-const api = hc<AppType>('https://connector.example.com')
-const res = await api.health.$get()
+const api = hc<AppType>("https://connector.example.com");
+const res = await api.health.$get();
 ```
 
 ## Adding an endpoint
