@@ -1,14 +1,7 @@
 import { HttpError, UnexpectedResponseError } from "@/api/http-client";
 import type { Logger } from "@/lib/logger-types";
 import { RepositoryApi } from "@/api/repository-api";
-
-export type CommitInfo = {
-  hash: string;
-  shortHash: string;
-  message: string;
-  author: string;
-  date: string;
-};
+import type { CommitInfo } from "@/types/responses";
 
 /** Commit-related env vars; the parsed `Env` from `@/config/env` satisfies it. */
 type CommitEnv = {
