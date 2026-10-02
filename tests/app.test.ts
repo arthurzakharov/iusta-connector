@@ -10,7 +10,10 @@ describe("app", () => {
     const res = await app.request("/does-not-exist");
 
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: "Not Found" });
+    expect(await res.json()).toEqual({
+      error: "Not Found",
+      requestId: res.headers.get("X-Request-Id"),
+    });
   });
 
   test("returns JSON 500 and logs unhandled errors", async () => {
@@ -22,11 +25,14 @@ describe("app", () => {
 
     const res = await app.request("/boom");
 
+    const requestId = res.headers.get("X-Request-Id");
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: "Internal Server Error" });
+    expect(await res.json()).toEqual({
+      error: "Internal Server Error",
+      requestId,
+    });
     const errorLog = entries.find((e) => e.msg === "unhandled error");
-    expect(errorLog).toMatchObject({ err: { message: "kaboom" } });
-    expect(errorLog?.requestId).toBeString();
+    expect(errorLog).toMatchObject({ err: { message: "kaboom" }, requestId });
   });
 
   test("sets an X-Request-Id header and honours an incoming one", async () => {
@@ -40,6 +46,21 @@ describe("app", () => {
 
     expect(generated.headers.get("X-Request-Id")).toBeString();
     expect(forwarded.headers.get("X-Request-Id")).toBe("abc-123");
+  });
+});
+
+describe("security headers", () => {
+  test("sets secure defaults on every response", async () => {
+    const { logger } = createTestLogger();
+    const app = createApp({ logger, commitInfo: null });
+
+    const res = await app.request("/health");
+
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("X-Frame-Options")).toBe("SAMEORIGIN");
+    expect(res.headers.get("Strict-Transport-Security")).toStartWith(
+      "max-age=",
+    );
   });
 });
 

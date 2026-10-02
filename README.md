@@ -54,6 +54,9 @@ All configuration comes from env vars. Server settings are validated on startup 
 ## Endpoints
 
 - `GET /` and `GET /health` — `{ status: "ok", commit: { hash, shortHash, message, author, date } | null }`
+- Errors (unknown route, unhandled exception) — `404`/`500` with `{ error, requestId }` (`ErrorResponse` in the client). `requestId` matches the `X-Request-Id` response header and the server logs, so a frontend can show it for support requests.
+
+Every response also carries standard security headers (`X-Content-Type-Options`, `Strict-Transport-Security`, `X-Frame-Options`, …) from Hono's `secureHeaders()`.
 
 Commit info is resolved once at startup, in this order:
 
