@@ -29,8 +29,10 @@ function toCommitInfo(
   };
 }
 
-/** Reads commit info injected at build time (e.g. Docker build args). */
-export function commitInfoFromEnv(env: EnvSource): CommitInfo | null {
+/**
+ * Reads commit info injected at build time (e.g. Docker build args).
+ */
+export function commitInfoFromEnv(env: EnvSource) {
   const {
     GIT_COMMIT_HASH,
     GIT_COMMIT_MESSAGE,
@@ -53,8 +55,10 @@ export function commitInfoFromEnv(env: EnvSource): CommitInfo | null {
   );
 }
 
-/** Reads the last commit from the local git repository (development fallback). */
-export function commitInfoFromGit(cwd?: string): CommitInfo | null {
+/**
+ * Reads the last commit from the local git repository (development fallback).
+ */
+export function commitInfoFromGit(cwd?: string) {
   try {
     const result = Bun.spawnSync(
       [
@@ -80,16 +84,16 @@ export function commitInfoFromGit(cwd?: string): CommitInfo | null {
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
-type GitHubCommitOptions = {
-  repoSlug: string;
-  sha: string;
+type RemoteCommitOptions = {
+  repository: string;
+  hash: string;
   token?: string | undefined;
   timeoutMs?: number;
   fetch?: FetchFn;
   logger?: Logger | undefined;
 };
 
-const gitHubCommitSchema = z.object({
+const remoteCommitSchema = z.object({
   sha: z.string(),
   commit: z.object({
     message: z.string(),
@@ -98,18 +102,18 @@ const gitHubCommitSchema = z.object({
   }),
 });
 
-/** Looks up a commit via the GitHub API (used on hosts like Render that only expose the commit SHA). */
-export async function commitInfoFromGitHub({
-  repoSlug,
-  sha,
+/** Looks up a commit in the remote repository API (used when only the commit hash is known). */
+export async function commitInfoFromRemote({
+  repository,
+  hash,
   token,
   timeoutMs = 3000,
   fetch = globalThis.fetch,
   logger,
-}: GitHubCommitOptions): Promise<CommitInfo | null> {
+}: RemoteCommitOptions) {
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${repoSlug}/commits/${sha}`,
+      `https://api.github.com/repos/${repository}/commits/${hash}`,
       {
         headers: {
           Accept: "application/vnd.github+json",
@@ -127,27 +131,27 @@ export async function commitInfoFromGitHub({
           rateLimitReset: res.headers.get("x-ratelimit-reset"),
           authenticated: Boolean(token),
         },
-        "GitHub commit lookup failed",
+        "remote commit lookup failed",
       );
       return null;
     }
 
-    const parsed = gitHubCommitSchema.safeParse(await res.json());
+    const parsed = remoteCommitSchema.safeParse(await res.json());
     if (!parsed.success) {
-      logger?.warn("GitHub commit lookup returned an unexpected payload");
+      logger?.warn("remote commit lookup returned an unexpected payload");
       return null;
     }
 
-    const { sha: hash, commit } = parsed.data;
+    const { sha, commit } = parsed.data;
     const subject = commit.message.split("\n", 1)[0] ?? "";
     return toCommitInfo(
-      hash,
+      sha,
       subject,
       commit.author.name,
       commit.committer.date,
     );
   } catch (err) {
-    logger?.warn({ err }, "GitHub commit lookup request failed");
+    logger?.warn({ err }, "remote commit lookup request failed");
     return null;
   }
 }
@@ -159,26 +163,27 @@ type ResolveCommitInfoOptions = {
 };
 
 /**
- * Resolution order:
- * 1. GIT_COMMIT_* env vars (local `bun run docker:build`)
+ * Get commit info. Resolution order:
+ * 1. local Docker env vars (development)
  * 2. local git repository (development)
- * 3. GitHub API using RENDER_GIT_REPO_SLUG + RENDER_GIT_COMMIT (Render deploys)
+ * 3. remote repository API using GIT_COMMIT_HASH + GIT_REPOSITORY (when only the hash is known)
  */
 export async function resolveCommitInfo(
   env: EnvSource,
   { cwd, fetch, logger }: ResolveCommitInfoOptions = {},
 ) {
   const local = commitInfoFromEnv(env) ?? commitInfoFromGit(cwd);
+
   if (local) return local;
 
-  const { RENDER_GIT_REPO_SLUG, RENDER_GIT_COMMIT, GITHUB_TOKEN } = env;
+  const { GIT_COMMIT_HASH, GIT_REPOSITORY, GIT_REPOSITORY_TOKEN } = env;
 
-  if (!RENDER_GIT_REPO_SLUG || !RENDER_GIT_COMMIT) return null;
+  if (!GIT_COMMIT_HASH || !GIT_REPOSITORY) return null;
 
-  return commitInfoFromGitHub({
-    repoSlug: RENDER_GIT_REPO_SLUG,
-    sha: RENDER_GIT_COMMIT,
-    token: GITHUB_TOKEN,
+  return commitInfoFromRemote({
+    repository: GIT_REPOSITORY,
+    hash: GIT_COMMIT_HASH,
+    token: GIT_REPOSITORY_TOKEN,
     logger,
     ...(fetch && { fetch }),
   });

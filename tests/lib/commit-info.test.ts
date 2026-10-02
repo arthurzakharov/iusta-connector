@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   commitInfoFromEnv,
   commitInfoFromGit,
-  commitInfoFromGitHub,
+  commitInfoFromRemote,
   resolveCommitInfo,
 } from "@/lib/commit-info";
 import { createTestLogger } from "@tests/helpers/logger";
@@ -88,11 +88,11 @@ describe("commitInfoFromGit", () => {
   });
 });
 
-const gitHubCommit = {
+const remoteCommit = {
   sha: HASH,
   commit: {
     message: "feat: deployed commit\n\nLonger description body",
-    author: { name: "GitHub Author" },
+    author: { name: "Remote Author" },
     committer: { date: "2026-10-02T09:15:00Z" },
   },
 };
@@ -108,13 +108,13 @@ function mockFetch(response: () => Response | Promise<Response>) {
   return { fetch, calls };
 }
 
-describe("commitInfoFromGitHub", () => {
-  test("maps the GitHub commit using only the first line of the message", async () => {
-    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit));
+describe("commitInfoFromRemote", () => {
+  test("maps the remote commit using only the first line of the message", async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(remoteCommit));
 
-    const info = await commitInfoFromGitHub({
-      repoSlug: "acme/repo",
-      sha: HASH,
+    const info = await commitInfoFromRemote({
+      repository: "acme/repo",
+      hash: HASH,
       fetch,
     });
 
@@ -122,7 +122,7 @@ describe("commitInfoFromGitHub", () => {
       hash: HASH,
       shortHash: "abcdef0",
       message: "feat: deployed commit",
-      author: "GitHub Author",
+      author: "Remote Author",
       date: "2026-10-02T09:15:00Z",
     });
     expect(calls[0]?.url).toBe(
@@ -134,11 +134,11 @@ describe("commitInfoFromGitHub", () => {
   });
 
   test("sends a bearer token when provided", async () => {
-    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit));
+    const { fetch, calls } = mockFetch(() => Response.json(remoteCommit));
 
-    await commitInfoFromGitHub({
-      repoSlug: "acme/repo",
-      sha: HASH,
+    await commitInfoFromRemote({
+      repository: "acme/repo",
+      hash: HASH,
       token: "secret",
       fetch,
     });
@@ -162,15 +162,15 @@ describe("commitInfoFromGitHub", () => {
     );
 
     expect(
-      await commitInfoFromGitHub({
-        repoSlug: "acme/repo",
-        sha: HASH,
+      await commitInfoFromRemote({
+        repository: "acme/repo",
+        hash: HASH,
         fetch,
         logger,
       }),
     ).toBeNull();
     expect(entries[0]).toMatchObject({
-      msg: "GitHub commit lookup failed",
+      msg: "remote commit lookup failed",
       status: 403,
       rateLimitRemaining: "0",
       rateLimitReset: "1759400000",
@@ -183,15 +183,15 @@ describe("commitInfoFromGitHub", () => {
     const { fetch } = mockFetch(() => Response.json({ sha: HASH }));
 
     expect(
-      await commitInfoFromGitHub({
-        repoSlug: "acme/repo",
-        sha: HASH,
+      await commitInfoFromRemote({
+        repository: "acme/repo",
+        hash: HASH,
         fetch,
         logger,
       }),
     ).toBeNull();
     expect(entries[0]?.msg).toBe(
-      "GitHub commit lookup returned an unexpected payload",
+      "remote commit lookup returned an unexpected payload",
     );
   });
 
@@ -202,15 +202,15 @@ describe("commitInfoFromGitHub", () => {
     );
 
     expect(
-      await commitInfoFromGitHub({
-        repoSlug: "acme/repo",
-        sha: HASH,
+      await commitInfoFromRemote({
+        repository: "acme/repo",
+        hash: HASH,
         fetch,
         logger,
       }),
     ).toBeNull();
     expect(entries[0]).toMatchObject({
-      msg: "GitHub commit lookup request failed",
+      msg: "remote commit lookup request failed",
       err: { message: "network down" },
     });
   });
@@ -220,15 +220,19 @@ describe("commitInfoFromGitHub", () => {
       () => new Response("Not Found", { status: 404 }),
     );
     expect(
-      await commitInfoFromGitHub({ repoSlug: "acme/repo", sha: HASH, fetch }),
+      await commitInfoFromRemote({
+        repository: "acme/repo",
+        hash: HASH,
+        fetch,
+      }),
     ).toBeNull();
   });
 });
 
 describe("resolveCommitInfo", () => {
-  const renderEnv = {
-    RENDER_GIT_REPO_SLUG: "acme/repo",
-    RENDER_GIT_COMMIT: HASH,
+  const remoteEnv = {
+    GIT_REPOSITORY: "acme/repo",
+    GIT_COMMIT_HASH: HASH,
   };
 
   test("prefers env variables over git", async () => {
@@ -243,22 +247,22 @@ describe("resolveCommitInfo", () => {
     );
   });
 
-  test("falls back to GitHub using Render variables when git is unavailable", async () => {
-    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit));
+  test("falls back to the remote repository when only the commit hash is known and git is unavailable", async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(remoteCommit));
 
     const info = await resolveCommitInfo(
-      { ...renderEnv, GITHUB_TOKEN: "secret" },
+      { ...remoteEnv, GIT_REPOSITORY_TOKEN: "secret" },
       { cwd: emptyDir, fetch },
     );
 
-    expect(info?.author).toBe("GitHub Author");
+    expect(info?.author).toBe("Remote Author");
     expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBe(
       "Bearer secret",
     );
   });
 
-  test("returns null without Render variables and without git", async () => {
-    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit));
+  test("returns null without remote repository variables and without git", async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(remoteCommit));
 
     expect(await resolveCommitInfo({}, { cwd: emptyDir, fetch })).toBeNull();
     expect(calls).toHaveLength(0);
