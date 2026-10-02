@@ -11,7 +11,7 @@
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "dev": "bun --watch src/server.ts",
+    "dev": "LOG_FORMAT=pretty bun --watch src/server.ts",
     "start": "bun src/server.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
