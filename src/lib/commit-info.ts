@@ -1,6 +1,5 @@
 import type { CommitInfo } from "@/types/responses";
 
-/** Commit-related env vars; the parsed `Env` from `@/config/env` satisfies it. */
 type CommitEnv = {
   GIT_COMMIT_HASH?: string | undefined;
   GIT_COMMIT_MESSAGE?: string | undefined;
@@ -23,9 +22,6 @@ function toCommitInfo(
   };
 }
 
-/**
- * Reads commit info injected at build time (e.g. Docker build args).
- */
 export function commitInfoFromEnv(env: CommitEnv): CommitInfo | null {
   const {
     GIT_COMMIT_HASH,
@@ -49,9 +45,6 @@ export function commitInfoFromEnv(env: CommitEnv): CommitInfo | null {
   );
 }
 
-/**
- * Reads the last commit from the local git repository (development fallback).
- */
 export function commitInfoFromGit(cwd?: string): CommitInfo | null {
   const FIELD_SEPARATOR = "\x1f";
 
@@ -78,11 +71,6 @@ export function commitInfoFromGit(cwd?: string): CommitInfo | null {
   }
 }
 
-/**
- * Get commit info. Resolution order:
- * 1. GIT_COMMIT_* env vars (baked into the image at build time)
- * 2. local git repository (development)
- */
 export function resolveCommitInfo(
   env: CommitEnv,
   cwd?: string,

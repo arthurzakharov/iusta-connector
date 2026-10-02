@@ -15,7 +15,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY src ./src
 
-# Commit info is injected at build time (CI, or `bun run docker:build` locally); kept last for layer caching.
 ARG GIT_COMMIT_HASH=""
 ARG GIT_COMMIT_MESSAGE=""
 ARG GIT_COMMIT_AUTHOR=""

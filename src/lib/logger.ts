@@ -5,9 +5,6 @@ type LoggerParams = {
   pretty: boolean;
 };
 
-/**
- * Create configuration for pino logger
- */
 export function buildLoggerOptions({
   level,
   pretty,
@@ -23,9 +20,6 @@ export function buildLoggerOptions({
   };
 }
 
-/**
- * Create instance of pino logger.
- */
 export function createLogger(params: LoggerParams): pino.Logger {
   return pino(buildLoggerOptions(params));
 }

@@ -1,12 +1,9 @@
 #!/bin/sh
-# Formats the staged files with Prettier and lints the project, so CI's format
-# and lint checks pass. Skip with `git commit --no-verify`.
 set -e
 
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
 [ -z "$staged" ] && exit 0
 
-# Re-staging a formatted file would also stage its unstaged changes, so refuse.
 partial=$(echo "$staged" | tr '\n' '\0' | xargs -0 git diff --name-only --)
 if [ -n "$partial" ]; then
   echo "pre-commit: these files have both staged and unstaged changes:"

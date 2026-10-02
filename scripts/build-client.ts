@@ -1,11 +1,3 @@
-/**
- * Builds the publishable frontend client package into `dist-client/`:
- * - client.js: ESM bundle of src/client.ts (hono stays external, it's a peer dependency)
- * - *.d.ts: declarations with `@/` aliases rewritten to relative paths, so consumers can resolve them
- * - package.json: standalone manifest for GitHub Packages
- *
- * Version comes from CLIENT_VERSION (set from the git tag in CI) or falls back to the root package.json.
- */
 import { $, Glob } from "bun";
 import { rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";

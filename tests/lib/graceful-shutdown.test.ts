@@ -31,7 +31,6 @@ describe("handleShutdownSignals", () => {
 
   test("closes remaining connections after the timeout", async () => {
     const { logger, entries } = createTestLogger();
-    // A graceful stop that never finishes, like a hanging request; forcing it resolves.
     const stop = mock((force?: boolean) =>
       force ? Promise.resolve() : new Promise<void>(() => {}),
     );

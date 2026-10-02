@@ -7,11 +7,6 @@ type LogServerStartParams = {
   commitInfo: CommitInfo | null;
 };
 
-/**
- * Log the start of server, providing actual information and warn in case
- * commit information is not available. Missing commit information will cause
- * incomplete response to GET /health endpoint.
- */
 export function logServerStart(
   logger: Logger,
   { env, commitInfo }: LogServerStartParams,

@@ -1,9 +1,3 @@
-/**
- * Type-checks the built `dist-client/` package from a frontend's point of view:
- * strict mode, skipLibCheck off, only `hono` installed, for both `bundler` and `nodenext` resolution,
- * with our TypeScript and with TypeScript 5.x (what most Vite/React projects still use).
- * Uses @ts-expect-error on an unknown route to prove the client is typed (not `any`).
- */
 import { $ } from "bun";
 import { cp, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";

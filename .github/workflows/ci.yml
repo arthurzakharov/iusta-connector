@@ -17,8 +17,6 @@ jobs:
       - run: bun run check
       - run: bun run client:verify
 
-  # On main only: build the image with commit info baked in, push it to GHCR
-  # and deploy exactly that image.
   image:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
