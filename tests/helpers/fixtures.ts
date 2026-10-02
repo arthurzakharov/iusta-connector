@@ -1,6 +1,4 @@
-import type { CommitInfo } from "@/lib/commit-info";
-
-export const commitInfoFixture: CommitInfo = {
+export const commitInfoFixture = {
   hash: "0123456789abcdef0123456789abcdef01234567",
   shortHash: "0123456",
   message: "feat: add health endpoint",

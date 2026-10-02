@@ -26,9 +26,22 @@ Configuration is read from env vars and validated on startup (see `src/config/en
 
 Commit info is resolved once at startup, in this order:
 
-1. `GIT_COMMIT_*` env vars (set as Docker build args by `bun run docker:build`)
+1. all four `GIT_COMMIT_*` env vars (set as Docker build args by `bun run docker:build`)
 2. the local git repository (development)
-3. the remote repository API, when only `GIT_COMMIT_HASH` is set: also set `GIT_REPOSITORY` (`owner/name`) and, for a private repository, `GIT_REPOSITORY_TOKEN` (read-only access to repository contents).
+3. the remote repository API, looking up `GIT_COMMIT_HASH` in `GIT_REPOSITORY` (when only the hash is known, e.g. a deploy without `.git`)
+
+If none of these succeed, `commit` is `null` and a warning is logged at startup.
+
+| Variable               | Used by | Description                                                                 |
+| ---------------------- | ------- | --------------------------------------------------------------------------- |
+| `GIT_COMMIT_HASH`      | 1, 3    | Full commit hash                                                            |
+| `GIT_COMMIT_MESSAGE`   | 1       | Commit subject                                                              |
+| `GIT_COMMIT_AUTHOR`    | 1       | Commit author name                                                          |
+| `GIT_COMMIT_DATE`      | 1       | Commit date (ISO 8601)                                                      |
+| `GIT_REPOSITORY`       | 3       | Repository path on the host, e.g. `owner/name`                              |
+| `GIT_REPOSITORY_TOKEN` | 3       | Optional token with read-only access to repository contents (private repos) |
+
+The remote repository host (base URL, auth headers, endpoint paths, response shape) is configured in `src/api/repository-api.ts` — that is the only file to change when moving to another host.
 
 ## Docker
 

@@ -32,8 +32,6 @@ export function createApp({
   return app.route("/", createHealthRoutes(commitInfo));
 }
 
-/** Type of the whole API — import it in frontends with `hc<AppType>()` from `hono/client`. */
 export type AppType = ReturnType<typeof createApp>;
-
 export type { CommitInfo } from "@/lib/commit-info";
 export type { HealthResponse } from "@/routes/health";
