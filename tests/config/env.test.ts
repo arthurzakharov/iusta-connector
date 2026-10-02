@@ -27,6 +27,15 @@ describe("parseEnv", () => {
     });
   });
 
+  test("normalises origins to what browsers send (no trailing slash or path)", () => {
+    expect(
+      parseEnv({
+        ALLOWED_ORIGINS:
+          "http://localhost:5173/,https://app.example.com/some/path",
+      }).ALLOWED_ORIGINS,
+    ).toEqual(["http://localhost:5173", "https://app.example.com"]);
+  });
+
   test("throws a readable error for invalid values", () => {
     expect(() =>
       parseEnv({

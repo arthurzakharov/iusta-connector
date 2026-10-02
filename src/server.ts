@@ -26,7 +26,12 @@ const app = createApp({
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
 
 logger.info(
-  { port: server.port, env: env.NODE_ENV, commit: commitInfo?.shortHash },
+  {
+    port: server.port,
+    env: env.NODE_ENV,
+    commit: commitInfo?.shortHash,
+    allowedOrigins: env.ALLOWED_ORIGINS,
+  },
   "server started",
 );
 

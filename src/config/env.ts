@@ -18,7 +18,9 @@ const envSchema = z.object({
         .map((origin) => origin.trim())
         .filter(Boolean),
     )
-    .pipe(z.array(z.url())),
+    .pipe(z.array(z.url()))
+    // Browsers send a bare origin (no path, no trailing slash); CORS matching is exact.
+    .transform((urls) => urls.map((url) => new URL(url).origin)),
 });
 
 export type Env = z.infer<typeof envSchema>;
