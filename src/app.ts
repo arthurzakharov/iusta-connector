@@ -12,11 +12,9 @@ type AppDeps = {
   allowedOrigins?: string[];
 };
 
-export function createApp({
-  logger,
-  commitInfo,
-  allowedOrigins = [],
-}: AppDeps) {
+export function createApp(params: AppDeps) {
+  const { logger, commitInfo, allowedOrigins = [] } = params;
+
   const app = new Hono();
 
   app.use(requestId());
