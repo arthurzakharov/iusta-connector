@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
-import type { CommitInfo } from "@/lib/commit-info";
+import type { CommitInfo } from "@/types/responses";
 import type { Logger } from "@/lib/logger-types";
 import { requestLogger } from "@/middleware/request-logger";
 import { createHealthRoutes } from "@/routes/health";
@@ -33,5 +33,4 @@ export function createApp({
 }
 
 export type AppType = ReturnType<typeof createApp>;
-export type { CommitInfo } from "@/lib/commit-info";
-export type { HealthResponse } from "@/routes/health";
+export type { CommitInfo, HealthResponse } from "@/types/responses";

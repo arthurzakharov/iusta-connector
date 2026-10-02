@@ -146,7 +146,7 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 
 **Structure**
 
-- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing. File names are kebab-case.
+- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing, `types/` for types shared with the frontend client (import-free, so the client package ships no server code). File names are kebab-case.
 - Pass dependencies such as the logger as arguments (no singletons); the logger is always required.
 - Use a class only when there is shared state (e.g. `HttpClient`, `RepositoryApi`); mark members `public` or `private` explicitly, without `#` fields. Stateless logic stays in plain functions.
 - Await or return every promise **(enforced)**.
