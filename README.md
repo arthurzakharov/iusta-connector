@@ -54,7 +54,15 @@ All configuration comes from env vars. Server settings are validated on startup 
 ## Endpoints
 
 - `GET /` and `GET /health` — `{ status: "ok", commit: { hash, shortHash, message, author, date } | null }`
-- Errors (unknown route, unhandled exception) — `404`/`500` with `{ error, requestId }` (`ErrorResponse` in the client). `requestId` matches the `X-Request-Id` response header and the server logs, so a frontend can show it for support requests.
+- Errors — `{ error, requestId, issues? }` (`ErrorResponse` in the client). `requestId` matches the `X-Request-Id` response header and the server logs, so a frontend can show it for support requests:
+
+  | Status | When                                                                                        |
+  | ------ | ------------------------------------------------------------------------------------------- |
+  | `400`  | Request failed validation; `issues` lists `{ path, message }` per field (e.g. `json.title`) |
+  | `404`  | Unknown route                                                                               |
+  | `502`  | An external API returned an error, an unexpected body, or could not be reached              |
+  | `504`  | An external API did not answer within the `HttpClient` timeout                              |
+  | `500`  | Any other unhandled error                                                                   |
 
 Every response also carries standard security headers (`X-Content-Type-Options`, `Strict-Transport-Security`, `X-Frame-Options`, …) from Hono's `secureHeaders()`.
 
@@ -74,11 +82,7 @@ bun run docker:logs    # follow logs
 bun run docker:stop    # stop (container is removed automatically)
 ```
 
-`docker:run` reads runtime env vars from `.env.docker` (git-ignored). The image runs with `NODE_ENV=production`, so it must set the deployment variables from [Configuration](#configuration):
-
-```sh
-ALLOWED_ORIGINS=http://localhost:5173
-```
+The image runs with `NODE_ENV=production`, so `docker:run` passes the required deployment variable itself: `ALLOWED_ORIGINS=http://localhost:5173`, for a frontend dev server on the default Vite port.
 
 ## Deployment
 
@@ -144,7 +148,7 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 **Types**
 
 - Use `type`, not `interface` **(enforced)**.
-- Exported functions and public methods declare their return type **(enforced)**. Exception: `src/app.ts`, `src/routes/**` and `src/client.ts`, where Hono infers the route types that become `AppType` and the client types.
+- Exported functions and public methods declare their return type **(enforced)**. Exception: `src/app.ts`, `src/routes/**`, `src/client.ts` and `src/middleware/validate.ts`, where Hono infers the route types that become `AppType` and the client types.
 - Name the object argument of a function `<FunctionName>Params` (e.g. `CreateAppParams`) and of a class constructor `<ClassName>Constructor` (e.g. `HttpClientConstructor`).
 - Destructure object arguments in the signature. Pass the object on unchanged only when the function just forwards it.
 - An optional property that callers may set to `undefined` is typed `name?: T | undefined` (`exactOptionalPropertyTypes` is on).
@@ -161,8 +165,22 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 
 ## Adding an endpoint
 
-1. Create `src/routes/<name>.ts` exporting a chained `new Hono()` router.
-2. Mount it in `src/app.ts` via `.route(...)` (keep it chained so `AppType` stays typed).
-3. Add tests under `tests/routes/` — coverage is enforced at 100%.
+1. **External API call** (if the endpoint needs one): add a method to the API's class in `src/api/` (e.g. `IustaApi`), built on `HttpClient`. Describe the external response with a zod schema there and return your own type, so the external shape never leaks into routes.
+2. **Response type**: add it to `src/types/responses.ts` (import-free), so frontends get it from the client package.
+3. **Route**: create `src/routes/<name>.ts` exporting a function that receives its dependencies (API class, logger) and returns a chained `new Hono()` router. Validate input with `validate("json" | "query" | "param", schema)` and read it with `c.req.valid(...)`.
+4. **Mount** it in `src/app.ts` via `.route(...)` (keep it chained so `AppType` stays typed), passing the dependencies from `createApp`'s params; `server.ts` creates the real instances.
+5. **Errors**: let them propagate. Validation errors become `400`, `HttpClient` failures `502`/`504`, everything else `500` — see `src/middleware/error-handler.ts`. Catch an `HttpError` in a route only to give a specific status a meaning (e.g. upstream `404` → your `404`).
+6. **Tests** under `tests/routes/`: pass a fake API class or an `HttpClient` with a fake `fetch` — no network. Coverage is enforced at 100%.
+
+```ts
+export function createCaseRoutes(iusta: IustaApi) {
+  return new Hono().get(
+    "/cases/:id",
+    validate("param", z.object({ id: z.uuid() })),
+    async (c) =>
+      c.json<CaseResponse>(await iusta.getCase(c.req.valid("param").id)),
+  );
+}
+```
 
 The new route is automatically part of the client types; publish a new tag so frontends get it.

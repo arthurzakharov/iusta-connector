@@ -4,6 +4,7 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import type { CommitInfo, ErrorResponse } from "@/types/responses";
 import type { Logger } from "@/lib/logger-types";
+import { errorHandler } from "@/middleware/error-handler";
 import { requestLogger } from "@/middleware/request-logger";
 import { createHealthRoutes } from "@/routes/health";
 
@@ -31,14 +32,7 @@ export function createApp({
       404,
     ),
   );
-  app.onError((err, c) => {
-    const requestId = c.get("requestId");
-    logger.error({ err, requestId }, "unhandled error");
-    return c.json<ErrorResponse>(
-      { error: "Internal Server Error", requestId },
-      500,
-    );
-  });
+  app.onError(errorHandler(logger));
 
   return app.route("/", createHealthRoutes(commitInfo));
 }
@@ -48,4 +42,5 @@ export type {
   CommitInfo,
   ErrorResponse,
   HealthResponse,
+  ValidationIssue,
 } from "@/types/responses";

@@ -1,5 +1,5 @@
 import { $, Glob } from "bun";
-import { rm } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 
 const root = join(import.meta.dir, "..");
@@ -35,6 +35,29 @@ for await (const file of new Glob("**/*.d.ts").scan(outDir)) {
     return `${quote}${rel.startsWith(".") ? rel : `./${rel}`}.js${quote}`;
   });
   await Bun.write(path, rewritten);
+}
+
+const importPattern = /(?:from\s+|import\()\s*["'](\.[^"']+)\.js["']/g;
+const reachable = new Set<string>();
+const queue = [join(outDir, "client.d.ts")];
+while (queue.length > 0) {
+  const path = queue.pop()!;
+  if (reachable.has(path)) continue;
+  reachable.add(path);
+  const source = await Bun.file(path).text();
+  for (const [, specifier] of source.matchAll(importPattern)) {
+    queue.push(join(dirname(path), `${specifier}.d.ts`));
+  }
+}
+for await (const file of new Glob("**/*.d.ts").scan(outDir)) {
+  if (!reachable.has(join(outDir, file))) await rm(join(outDir, file));
+}
+for await (const dir of new Glob("**/").scan({
+  cwd: outDir,
+  onlyFiles: false,
+})) {
+  const path = join(outDir, dir);
+  if ((await readdir(path)).length === 0) await rm(path, { recursive: true });
 }
 
 const clientPkg = {

@@ -1,7 +1,13 @@
 import { hc, type ClientRequestOptions } from "hono/client";
 import type { AppType } from "@/app";
 
-export type { AppType, CommitInfo, ErrorResponse, HealthResponse } from "@/app";
+export type {
+  AppType,
+  CommitInfo,
+  ErrorResponse,
+  HealthResponse,
+  ValidationIssue,
+} from "@/app";
 
 export function createIustaClient(
   baseUrl: string,
