@@ -7,6 +7,7 @@ describe("parseEnv", () => {
       NODE_ENV: "development",
       PORT: 3000,
       LOG_LEVEL: "info",
+      LOG_FORMAT: "json",
       ALLOWED_ORIGINS: [],
     });
   });
@@ -17,6 +18,7 @@ describe("parseEnv", () => {
         NODE_ENV: "production",
         PORT: "8080",
         LOG_LEVEL: "warn",
+        LOG_FORMAT: "pretty",
         ALLOWED_ORIGINS: " https://app.example.com, http://localhost:5173 ,",
         GIT_REPOSITORY_NAME: "acme/repo",
         GIT_REPOSITORY_TOKEN: "secret",
@@ -25,6 +27,7 @@ describe("parseEnv", () => {
       NODE_ENV: "production",
       PORT: 8080,
       LOG_LEVEL: "warn",
+      LOG_FORMAT: "pretty",
       ALLOWED_ORIGINS: ["https://app.example.com", "http://localhost:5173"],
       GIT_REPOSITORY_NAME: "acme/repo",
       GIT_REPOSITORY_TOKEN: "secret",
@@ -64,10 +67,11 @@ describe("parseEnv", () => {
       parseEnv({
         PORT: "abc",
         LOG_LEVEL: "loud",
+        LOG_FORMAT: "fancy",
         ALLOWED_ORIGINS: "not-a-url",
       }),
     ).toThrow(
-      /Invalid environment variables[\s\S]*PORT[\s\S]*LOG_LEVEL[\s\S]*ALLOWED_ORIGINS/,
+      /Invalid environment variables[\s\S]*PORT[\s\S]*LOG_LEVEL[\s\S]*LOG_FORMAT[\s\S]*ALLOWED_ORIGINS/,
     );
   });
 });

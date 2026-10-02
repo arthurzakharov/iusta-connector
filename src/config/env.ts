@@ -9,6 +9,7 @@ const envSchema = z
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
+    LOG_FORMAT: z.enum(["json", "pretty"]).default("json"),
     ALLOWED_ORIGINS: z
       .string()
       .default("")

@@ -9,7 +9,7 @@ const env = parseEnv(process.env);
 
 const logger = createLogger({
   level: env.LOG_LEVEL,
-  pretty: env.NODE_ENV === "development",
+  pretty: env.LOG_FORMAT === "pretty",
 });
 
 const commitInfo = await resolveCommitInfo(env, { logger });

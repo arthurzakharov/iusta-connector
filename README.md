@@ -34,18 +34,19 @@ Connector between our frontend applications and iusta. Built with [Bun](https://
 
 All configuration comes from env vars. Server settings are validated on startup in `src/config/env.ts`.
 
-| Variable               | Default                   | Set by                    | Description                                                     |
-| ---------------------- | ------------------------- | ------------------------- | --------------------------------------------------------------- |
-| `NODE_ENV`             | `development`             | Dockerfile (`production`) | `development` enables pretty logs                               |
-| `PORT`                 | `3000`                    | Dockerfile (`3000`)       | Port the server listens on                                      |
-| `LOG_LEVEL`            | `info`                    | Dockerfile (`info`)       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`  |
-| `GIT_COMMIT_HASH`      | none                      | Docker build arg          | Full commit hash                                                |
-| `GIT_COMMIT_MESSAGE`   | none                      | Docker build arg          | Commit subject                                                  |
-| `GIT_COMMIT_AUTHOR`    | none                      | Docker build arg          | Commit author name                                              |
-| `GIT_COMMIT_DATE`      | none                      | Docker build arg          | Commit date (ISO 8601)                                          |
-| `ALLOWED_ORIGINS`      | `[]` (no origins allowed) | Deployment                | Comma-separated frontend origins allowed to call the API (CORS) |
-| `GIT_REPOSITORY_NAME`  | none                      | Deployment                | Repository path on the host, e.g. `owner/name`                  |
-| `GIT_REPOSITORY_TOKEN` | none                      | Deployment                | Token with read-only access to repository contents              |
+| Variable               | Default                   | Set by                    | Description                                                                                                     |
+| ---------------------- | ------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`             | `development`             | Dockerfile (`production`) | `production` makes the deployment variables required                                                            |
+| `PORT`                 | `3000`                    | Dockerfile (`3000`)       | Port the server listens on                                                                                      |
+| `LOG_LEVEL`            | `info`                    | Dockerfile (`info`)       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`                                                  |
+| `LOG_FORMAT`           | `json`                    | `bun run dev` (`pretty`)  | `json` or `pretty`; `pretty` needs the dev dependency `pino-pretty`, so it is not available in the Docker image |
+| `GIT_COMMIT_HASH`      | none                      | Docker build arg          | Full commit hash                                                                                                |
+| `GIT_COMMIT_MESSAGE`   | none                      | Docker build arg          | Commit subject                                                                                                  |
+| `GIT_COMMIT_AUTHOR`    | none                      | Docker build arg          | Commit author name                                                                                              |
+| `GIT_COMMIT_DATE`      | none                      | Docker build arg          | Commit date (ISO 8601)                                                                                          |
+| `ALLOWED_ORIGINS`      | `[]` (no origins allowed) | Deployment                | Comma-separated frontend origins allowed to call the API (CORS)                                                 |
+| `GIT_REPOSITORY_NAME`  | none                      | Deployment                | Repository path on the host, e.g. `owner/name`                                                                  |
+| `GIT_REPOSITORY_TOKEN` | none                      | Deployment                | Token with read-only access to repository contents                                                              |
 
 - **Dockerfile:** sets `NODE_ENV`, `PORT` and `LOG_LEVEL` in the image. A deployment env var with the same name overrides them.
 - **Docker build args:** the build pipeline passes the four `GIT_COMMIT_*` values (`bun run docker:build` does this locally). They are baked into the image.
