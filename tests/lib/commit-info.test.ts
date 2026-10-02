@@ -117,7 +117,10 @@ function mockFetch(response: () => Response | Promise<Response>) {
     url: string | URL | Request,
     init?: RequestInit,
   ) => {
-    calls.push({ url: String(url), init });
+    calls.push({
+      url: url instanceof Request ? url.url : url.toString(),
+      init,
+    });
     return response();
   }) as typeof fetch);
   return { calls };

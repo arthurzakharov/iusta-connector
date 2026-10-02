@@ -1,8 +1,11 @@
+import type { MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { RequestIdVariables } from "hono/request-id";
 import type { Logger } from "@/lib/logger-types";
 
-export function requestLogger(logger: Logger) {
+export function requestLogger(
+  logger: Logger,
+): MiddlewareHandler<{ Variables: RequestIdVariables }> {
   return createMiddleware<{ Variables: RequestIdVariables }>(
     async (c, next) => {
       const start = performance.now();

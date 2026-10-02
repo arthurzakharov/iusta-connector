@@ -6,6 +6,18 @@ type RepositoryApiConstructor = {
   token?: string | undefined;
 };
 
+type RepositoryCommit = {
+  hash: string;
+  message: string;
+  author: string;
+  date: string;
+};
+
+type RateLimit = {
+  remaining: string | null;
+  reset: string | null;
+};
+
 const commitSchema = z.object({
   sha: z.string(),
   commit: z.object({
@@ -35,7 +47,7 @@ export class RepositoryApi {
     });
   }
 
-  public async getCommit(hash: string) {
+  public async getCommit(hash: string): Promise<RepositoryCommit> {
     const { sha, commit } = await this.http.get(
       this.path.commits(hash),
       commitSchema,
@@ -49,7 +61,7 @@ export class RepositoryApi {
     };
   }
 
-  public rateLimit(error: HttpError) {
+  public rateLimit(error: HttpError): RateLimit {
     return {
       remaining: error.headers.get("x-ratelimit-remaining"),
       reset: error.headers.get("x-ratelimit-reset"),

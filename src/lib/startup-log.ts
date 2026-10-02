@@ -2,10 +2,10 @@ import type { Env } from "@/config/env";
 import type { CommitInfo } from "@/lib/commit-info";
 import type { Logger } from "@/lib/logger-types";
 
-interface Params {
+type Params = {
   env: Env;
   commitInfo: CommitInfo | null;
-}
+};
 
 /**
  * Log the start of server, providing actual information and warn in case

@@ -73,8 +73,9 @@ describe("HttpClient", () => {
   test("passes network errors through unchanged", async () => {
     const { http } = setup(() => Promise.reject(new Error("network down")));
 
-    await expect(http.get("/items/1", itemSchema)).rejects.toThrow(
-      "network down",
-    );
+    const error = await http.get("/items/1", itemSchema).catch((e) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe("network down");
   });
 });

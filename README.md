@@ -11,9 +11,10 @@ Connector between our frontend applications and iusta. Built with [Bun](https://
 | `bun run start`         | Start the server                                             |
 | `bun test`              | Run tests with coverage (fails below 100% lines/functions)   |
 | `bun run typecheck`     | Type-check with `tsc`                                        |
+| `bun run lint`          | Lint with oxlint (type-aware, see `.oxlintrc.json`)          |
 | `bun run format`        | Format all files with Prettier                               |
 | `bun run format:check`  | Verify formatting (for CI)                                   |
-| `bun run check`         | Format check + typecheck + tests — run before pushing        |
+| `bun run check`         | Format check + lint + typecheck + tests — run before pushing |
 | `bun run docker:build`  | Build the Docker image with the current commit info baked in |
 | `bun run client:build`  | Build the frontend client package into `dist-client/`        |
 | `bun run client:verify` | Build + type-check the client as a frontend would            |
