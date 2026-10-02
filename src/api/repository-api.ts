@@ -36,7 +36,10 @@ export class RepositoryApi {
   }
 
   public async getCommit(hash: string) {
-    const { sha, commit } = await this.http.get(this.path.commits(hash), commitSchema);
+    const { sha, commit } = await this.http.get(
+      this.path.commits(hash),
+      commitSchema,
+    );
 
     return {
       hash: sha,

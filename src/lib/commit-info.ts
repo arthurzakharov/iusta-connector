@@ -58,7 +58,7 @@ export function commitInfoFromEnv(env: EnvSource) {
  */
 export function commitInfoFromGit(cwd?: string) {
   const FIELD_SEPARATOR = "\x1f";
-  
+
   try {
     const result = Bun.spawnSync(
       [
