@@ -29,11 +29,16 @@ const fullEnv = {
   GIT_COMMIT_DATE: "2026-09-30T10:00:00Z",
 };
 
+const HOOK_GIT_VARS = ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"];
+const cleanEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !HOOK_GIT_VARS.includes(key)),
+);
+
 function git(cwd: string, ...args: string[]) {
   Bun.spawnSync(["git", ...args], {
     cwd,
     env: {
-      ...process.env,
+      ...cleanEnv,
       GIT_AUTHOR_NAME: "Git Author",
       GIT_AUTHOR_EMAIL: "git@example.com",
       GIT_COMMITTER_NAME: "Git Author",

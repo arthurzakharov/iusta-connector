@@ -19,6 +19,17 @@ Connector between our frontend applications and iusta. Built with [Bun](https://
 | `bun run client:build`  | Build the frontend client package into `dist-client/`        |
 | `bun run client:verify` | Build + type-check the client as a frontend would            |
 
+## Git hooks
+
+`bun install` points git at `.githooks/` (via the `prepare` script), so the checks CI runs also run locally:
+
+| Hook         | Runs                                                                             |
+| ------------ | -------------------------------------------------------------------------------- |
+| `pre-commit` | Formats the staged files with Prettier (and re-stages them), then `bun run lint` |
+| `pre-push`   | `bun run check` and `bun run client:verify` — the same steps as CI               |
+
+`pre-commit` refuses files that have both staged and unstaged changes, because re-staging the formatted file would also stage the rest. Skip a hook in an emergency with `--no-verify`.
+
 ## Configuration
 
 All configuration comes from env vars. Server settings are validated on startup in `src/config/env.ts`.
