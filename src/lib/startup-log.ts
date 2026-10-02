@@ -12,7 +12,7 @@ interface Params {
  * commit information is not available. Missing commit information will cause
  * incomplete response to GET /health endpoint.
  */
-export function logServerStart(logger: Logger, params: Params) {
+export function logServerStart(logger: Logger, params: Params): void {
   logger.info(
     {
       port: params.env.PORT,
@@ -24,7 +24,7 @@ export function logServerStart(logger: Logger, params: Params) {
   );
   if (!params.commitInfo) {
     logger.warn(
-      "commit info unavailable: check that a git repository token is provided",
+      "commit info unavailable: pass GIT_COMMIT_* build args, run inside a git repository, or check GIT_REPOSITORY_NAME and GIT_REPOSITORY_TOKEN",
     );
   }
 }

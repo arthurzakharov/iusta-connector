@@ -63,6 +63,14 @@ bun run docker:logs    # follow logs
 bun run docker:stop    # stop (container is removed automatically)
 ```
 
+`docker:run` reads runtime env vars from `.env.docker` (git-ignored). The image runs with `NODE_ENV=production`, so it must contain the deployment variables from [Configuration](#configuration):
+
+```sh
+ALLOWED_ORIGINS=http://localhost:5173
+GIT_REPOSITORY_NAME=owner/name
+GIT_REPOSITORY_TOKEN=<token>
+```
+
 ## Typed client for frontends
 
 Published to GitHub Packages as `@arthurzakharov/iusta-connector-client` (types + a tiny `hono/client` wrapper, no server code).

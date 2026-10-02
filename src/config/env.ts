@@ -9,7 +9,6 @@ const envSchema = z
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
-    /** Comma-separated list of frontend origins allowed to call the API (CORS). */
     ALLOWED_ORIGINS: z
       .string()
       .default("")
@@ -20,9 +19,11 @@ const envSchema = z
           .filter(Boolean),
       )
       .pipe(z.array(z.url()))
-      // Browsers send a bare origin (no path, no trailing slash); CORS matching is exact.
       .transform((urls) => urls.map((url) => new URL(url).origin)),
-    /** Repository path on the host (e.g. `owner/name`), used to look up commit info remotely. */
+    GIT_COMMIT_HASH: z.string().optional(),
+    GIT_COMMIT_MESSAGE: z.string().optional(),
+    GIT_COMMIT_AUTHOR: z.string().optional(),
+    GIT_COMMIT_DATE: z.string().optional(),
     GIT_REPOSITORY_NAME: z.string().optional(),
     GIT_REPOSITORY_TOKEN: z.string().optional(),
   })
