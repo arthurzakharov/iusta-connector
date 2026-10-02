@@ -1,30 +1,42 @@
-export type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
+import type { Logger } from "@/lib/logger-types";
+
+type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
 /**
  * Anything with a zod-like parse; keeps this module free of a validation library dependency.
+ * For endpoints without a response body (e.g. 204), pass a schema that accepts `undefined`, like `z.undefined()`.
  */
 type Schema<T> = { parse(data: unknown): T };
 
+type QueryValue = string | number | boolean | undefined;
+
 type HttpClientConstructor = {
   baseUrl: string;
+  logger: Logger;
   headers?: Record<string, string>;
   timeoutMs?: number;
   fetch?: FetchFn;
 };
 
+/** Per-request options shared by all methods. `undefined` query values are left out. */
 type RequestParams = {
-  method: string;
-  body?: string;
+  query?: Record<string, QueryValue>;
   headers?: Record<string, string>;
 };
 
+type SendParams = RequestParams & {
+  method: string;
+  body?: unknown;
+};
+
 /**
- * Thrown for non-2xx responses.
+ * Thrown for non-2xx responses. `body` is the raw response text, often the API's own error message.
  */
 export class HttpError extends Error {
   public constructor(
     public readonly status: number,
     public readonly headers: Headers,
+    public readonly body: string,
   ) {
     super(`request failed with status ${status}`);
     this.name = "HttpError";
@@ -32,7 +44,7 @@ export class HttpError extends Error {
 }
 
 /**
- * Thrown when a response body does not match the expected schema.
+ * Thrown when a response body is not valid JSON or does not match the expected schema.
  */
 export class UnexpectedResponseError extends Error {
   public constructor(cause: unknown) {
@@ -47,51 +59,141 @@ export class UnexpectedResponseError extends Error {
  */
 export class HttpClient {
   private readonly baseUrl: string;
+  private readonly logger: Logger;
   private readonly headers: Record<string, string>;
   private readonly timeoutMs: number;
   private readonly fetchFn: FetchFn;
 
   public constructor({
     baseUrl,
+    logger,
     headers = {},
     timeoutMs = 5000,
     fetch = globalThis.fetch,
   }: HttpClientConstructor) {
     this.baseUrl = baseUrl;
+    this.logger = logger;
     this.headers = headers;
     this.timeoutMs = timeoutMs;
     this.fetchFn = fetch;
   }
 
-  public get<T>(path: string, schema: Schema<T>): Promise<T> {
-    return this.request(path, schema, { method: "GET" });
-  }
-
-  public post<T>(path: string, body: unknown, schema: Schema<T>): Promise<T> {
-    return this.request(path, schema, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  private async request<T>(
+  public get<T>(
     path: string,
     schema: Schema<T>,
-    { headers, ...init }: RequestParams,
+    options?: RequestParams,
   ): Promise<T> {
+    return this.send(path, schema, { ...options, method: "GET" });
+  }
+
+  public post<T>(
+    path: string,
+    body: unknown,
+    schema: Schema<T>,
+    options?: RequestParams,
+  ): Promise<T> {
+    return this.send(path, schema, { ...options, method: "POST", body });
+  }
+
+  public put<T>(
+    path: string,
+    body: unknown,
+    schema: Schema<T>,
+    options?: RequestParams,
+  ): Promise<T> {
+    return this.send(path, schema, { ...options, method: "PUT", body });
+  }
+
+  public patch<T>(
+    path: string,
+    body: unknown,
+    schema: Schema<T>,
+    options?: RequestParams,
+  ): Promise<T> {
+    return this.send(path, schema, { ...options, method: "PATCH", body });
+  }
+
+  public delete<T>(
+    path: string,
+    schema: Schema<T>,
+    options?: RequestParams,
+  ): Promise<T> {
+    return this.send(path, schema, { ...options, method: "DELETE" });
+  }
+
+  private async send<T>(
+    path: string,
+    schema: Schema<T>,
+    { method, body, query, headers }: SendParams,
+  ): Promise<T> {
+    const url = this.buildUrl(path, query);
+    const hasBody = body !== undefined;
+    const start = performance.now();
+    // Called unbound: native fetch rejects a `this` other than the global object.
     const fetch = this.fetchFn;
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: { ...this.headers, ...headers },
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-    if (!res.ok) throw new HttpError(res.status, res.headers);
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method,
+        headers: {
+          ...this.headers,
+          ...(hasBody && { "Content-Type": "application/json" }),
+          ...headers,
+        },
+        ...(hasBody && { body: JSON.stringify(body) }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (err) {
+      this.logger.warn(
+        { method, url: this.logUrl(url), durationMs: this.since(start), err },
+        "outgoing request failed",
+      );
+      throw err;
+    }
+
+    const text = await res.text();
+    const log = {
+      method,
+      url: this.logUrl(url),
+      status: res.status,
+      durationMs: this.since(start),
+    };
+
+    if (!res.ok) {
+      this.logger.warn(log, "outgoing request completed");
+      throw new HttpError(res.status, res.headers, text);
+    }
+    this.logger.info(log, "outgoing request completed");
 
     try {
-      return schema.parse(await res.json());
+      return schema.parse(text === "" ? undefined : JSON.parse(text));
     } catch (err) {
       throw new UnexpectedResponseError(err);
     }
+  }
+
+  private buildUrl(
+    path: string,
+    query: Record<string, QueryValue> = {},
+  ): string {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) search.append(key, String(value));
+    }
+    const qs = search.toString();
+    const url = `${this.baseUrl}${path}`;
+    if (!qs) return url;
+    return `${url}${url.includes("?") ? "&" : "?"}${qs}`;
+  }
+
+  /** Query strings may carry identifiers or tokens, so logs only get the origin and path. */
+  private logUrl(url: string): string {
+    const { origin, pathname } = new URL(url);
+    return `${origin}${pathname}`;
+  }
+
+  private since(start: number): number {
+    return Math.round((performance.now() - start) * 100) / 100;
   }
 }
