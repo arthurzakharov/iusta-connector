@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { commitInfoFromEnv, commitInfoFromGit, resolveCommitInfo } from '@/lib/commit-info'
+import { commitInfoFromEnv, commitInfoFromGit, commitInfoFromGitHub, resolveCommitInfo } from '@/lib/commit-info'
 
 const HASH = 'abcdef0123456789abcdef0123456789abcdef01'
 const fullEnv = {
@@ -80,12 +80,91 @@ describe('commitInfoFromGit', () => {
   })
 })
 
-describe('resolveCommitInfo', () => {
-  test('prefers env variables over git', () => {
-    expect(resolveCommitInfo(fullEnv, repoDir)?.author).toBe('Env Author')
+const gitHubCommit = {
+  sha: HASH,
+  commit: {
+    message: 'feat: deployed commit\n\nLonger description body',
+    author: { name: 'GitHub Author' },
+    committer: { date: '2026-10-02T09:15:00Z' },
+  },
+}
+
+type FetchCall = { url: string; init?: RequestInit | undefined }
+
+function mockFetch(response: () => Response | Promise<Response>) {
+  const calls: FetchCall[] = []
+  const fetch = async (url: string, init?: RequestInit) => {
+    calls.push({ url, init })
+    return response()
+  }
+  return { fetch, calls }
+}
+
+describe('commitInfoFromGitHub', () => {
+  test('maps the GitHub commit using only the first line of the message', async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit))
+
+    const info = await commitInfoFromGitHub({ repoSlug: 'acme/repo', sha: HASH, fetch })
+
+    expect(info).toEqual({
+      hash: HASH,
+      shortHash: 'abcdef0',
+      message: 'feat: deployed commit',
+      author: 'GitHub Author',
+      date: '2026-10-02T09:15:00Z',
+    })
+    expect(calls[0]?.url).toBe(`https://api.github.com/repos/acme/repo/commits/${HASH}`)
+    expect(new Headers(calls[0]?.init?.headers).has('Authorization')).toBe(false)
   })
 
-  test('falls back to git when env variables are missing', () => {
-    expect(resolveCommitInfo({}, repoDir)?.author).toBe('Git Author')
+  test('sends a bearer token when provided', async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit))
+
+    await commitInfoFromGitHub({ repoSlug: 'acme/repo', sha: HASH, token: 'secret', fetch })
+
+    expect(new Headers(calls[0]?.init?.headers).get('Authorization')).toBe('Bearer secret')
+  })
+
+  test('returns null for non-2xx responses', async () => {
+    const { fetch } = mockFetch(() => new Response('Not Found', { status: 404 }))
+    expect(await commitInfoFromGitHub({ repoSlug: 'acme/repo', sha: HASH, fetch })).toBeNull()
+  })
+
+  test('returns null for unexpected payloads', async () => {
+    const { fetch } = mockFetch(() => Response.json({ sha: HASH }))
+    expect(await commitInfoFromGitHub({ repoSlug: 'acme/repo', sha: HASH, fetch })).toBeNull()
+  })
+
+  test('returns null when the request fails', async () => {
+    const { fetch } = mockFetch(() => Promise.reject(new Error('network down')))
+    expect(await commitInfoFromGitHub({ repoSlug: 'acme/repo', sha: HASH, fetch })).toBeNull()
+  })
+})
+
+describe('resolveCommitInfo', () => {
+  const renderEnv = { RENDER_GIT_REPO_SLUG: 'acme/repo', RENDER_GIT_COMMIT: HASH }
+
+  test('prefers env variables over git', async () => {
+    expect((await resolveCommitInfo(fullEnv, { cwd: repoDir }))?.author).toBe('Env Author')
+  })
+
+  test('falls back to git when env variables are missing', async () => {
+    expect((await resolveCommitInfo({}, { cwd: repoDir }))?.author).toBe('Git Author')
+  })
+
+  test('falls back to GitHub using Render variables when git is unavailable', async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit))
+
+    const info = await resolveCommitInfo({ ...renderEnv, GITHUB_TOKEN: 'secret' }, { cwd: emptyDir, fetch })
+
+    expect(info?.author).toBe('GitHub Author')
+    expect(new Headers(calls[0]?.init?.headers).get('Authorization')).toBe('Bearer secret')
+  })
+
+  test('returns null without Render variables and without git', async () => {
+    const { fetch, calls } = mockFetch(() => Response.json(gitHubCommit))
+
+    expect(await resolveCommitInfo({}, { cwd: emptyDir, fetch })).toBeNull()
+    expect(calls).toHaveLength(0)
   })
 })

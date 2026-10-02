@@ -6,9 +6,12 @@ import { createLogger } from '@/lib/logger'
 const env = parseEnv(process.env)
 const logger = createLogger({ level: env.LOG_LEVEL, pretty: env.NODE_ENV === 'development' })
 
-const commitInfo = resolveCommitInfo(process.env)
+const commitInfo = await resolveCommitInfo(process.env)
 if (!commitInfo) {
-  logger.warn('commit info unavailable: set GIT_COMMIT_* env vars or run inside a git repository')
+  logger.warn(
+    { renderCommit: process.env.RENDER_GIT_COMMIT },
+    'commit info unavailable: set GIT_COMMIT_* env vars, run inside a git repository, or check GitHub API access',
+  )
 }
 
 const app = createApp({ logger, commitInfo })

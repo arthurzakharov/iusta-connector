@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export type CommitInfo = {
   hash: string
   shortHash: string
@@ -41,6 +43,80 @@ export function commitInfoFromGit(cwd?: string): CommitInfo | null {
   }
 }
 
-export function resolveCommitInfo(env: EnvSource, cwd?: string): CommitInfo | null {
-  return commitInfoFromEnv(env) ?? commitInfoFromGit(cwd)
+type FetchFn = (url: string, init?: RequestInit) => Promise<Response>
+
+export type GitHubCommitOptions = {
+  repoSlug: string
+  sha: string
+  token?: string | undefined
+  timeoutMs?: number
+  fetch?: FetchFn
+}
+
+const gitHubCommitSchema = z.object({
+  sha: z.string(),
+  commit: z.object({
+    message: z.string(),
+    author: z.object({ name: z.string() }),
+    committer: z.object({ date: z.string() }),
+  }),
+})
+
+/** Looks up a commit via the GitHub API (used on hosts like Render that only expose the commit SHA). */
+export async function commitInfoFromGitHub({
+  repoSlug,
+  sha,
+  token,
+  timeoutMs = 3000,
+  fetch = globalThis.fetch,
+}: GitHubCommitOptions): Promise<CommitInfo | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repoSlug}/commits/${sha}`, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'iusta-connector',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (!res.ok) return null
+
+    const parsed = gitHubCommitSchema.safeParse(await res.json())
+    if (!parsed.success) return null
+
+    const { sha: hash, commit } = parsed.data
+    const subject = commit.message.split('\n', 1)[0] ?? ''
+    return toCommitInfo(hash, subject, commit.author.name, commit.committer.date)
+  } catch {
+    return null
+  }
+}
+
+export type ResolveCommitInfoOptions = {
+  cwd?: string
+  fetch?: FetchFn
+}
+
+/**
+ * Resolution order:
+ * 1. GIT_COMMIT_* env vars (local `bun run docker:build`)
+ * 2. local git repository (development)
+ * 3. GitHub API using RENDER_GIT_REPO_SLUG + RENDER_GIT_COMMIT (Render deploys)
+ */
+export async function resolveCommitInfo(
+  env: EnvSource,
+  { cwd, fetch }: ResolveCommitInfoOptions = {},
+): Promise<CommitInfo | null> {
+  const local = commitInfoFromEnv(env) ?? commitInfoFromGit(cwd)
+  if (local) return local
+
+  const { RENDER_GIT_REPO_SLUG, RENDER_GIT_COMMIT, GITHUB_TOKEN } = env
+  if (!RENDER_GIT_REPO_SLUG || !RENDER_GIT_COMMIT) return null
+
+  return commitInfoFromGitHub({
+    repoSlug: RENDER_GIT_REPO_SLUG,
+    sha: RENDER_GIT_COMMIT,
+    token: GITHUB_TOKEN,
+    ...(fetch && { fetch }),
+  })
 }

@@ -19,7 +19,11 @@ Configuration is read from env vars and validated on startup (see `src/config/en
 
 - `GET /` and `GET /health` — `{ status: "ok", commit: { hash, shortHash, message, author, date } | null }`
 
-Commit info comes from `GIT_COMMIT_*` env vars (set as Docker build args), falling back to the local git repository.
+Commit info is resolved once at startup, in this order:
+
+1. `GIT_COMMIT_*` env vars (set as Docker build args by `bun run docker:build`)
+2. the local git repository (development)
+3. the GitHub API, using `RENDER_GIT_REPO_SLUG` + `RENDER_GIT_COMMIT` that Render sets automatically. Set `GITHUB_TOKEN` (read-only, `contents:read`) if the repository becomes private.
 
 ## Docker
 
