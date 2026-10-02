@@ -4,6 +4,7 @@ import { resolveCommitInfo } from "@/lib/commit-info";
 import { createLogger } from "@/lib/logger";
 
 const env = parseEnv(process.env);
+
 const logger = createLogger({
   level: env.LOG_LEVEL,
   pretty: env.NODE_ENV === "development",
@@ -23,6 +24,7 @@ const app = createApp({
   commitInfo,
   allowedOrigins: env.ALLOWED_ORIGINS,
 });
+
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
 
 logger.info(
