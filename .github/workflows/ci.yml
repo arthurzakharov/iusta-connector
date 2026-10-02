@@ -69,5 +69,10 @@ jobs:
             exit 0
           fi
           image_url=$(jq -rn --arg v "$IMAGE:$GITHUB_SHA" '$v | @uri')
-          curl --fail --silent --show-error -X POST "$DEPLOY_HOOK_URL&imgURL=$image_url" > /dev/null
+          status=$(curl --silent --show-error -o response.txt -w "%{http_code}" \
+            -X POST "$DEPLOY_HOOK_URL&imgURL=$image_url")
+          if [ "$status" -ge 300 ]; then
+            echo "::error::Deploy hook answered $status for $IMAGE:$GITHUB_SHA: $(cat response.txt)"
+            exit 1
+          fi
           echo "Deploy triggered for $IMAGE:$GITHUB_SHA"
