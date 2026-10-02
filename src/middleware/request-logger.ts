@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { RequestIdVariables } from "hono/request-id";
-import type { Logger } from "@/lib/logger";
+import type { Logger } from "@/lib/logger-types";
 
 export function requestLogger(logger: Logger) {
   return createMiddleware<{ Variables: RequestIdVariables }>(

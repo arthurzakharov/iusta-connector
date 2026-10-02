@@ -7,3 +7,8 @@ tests
 *.md
 Dockerfile
 .dockerignore
+dist-client
+scripts
+tsconfig.client.json
+.github
+.vscode

@@ -8,6 +8,17 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
+  /** Comma-separated list of frontend origins allowed to call the API (CORS). */
+  ALLOWED_ORIGINS: z
+    .string()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.url())),
 });
 
 export type Env = z.infer<typeof envSchema>;

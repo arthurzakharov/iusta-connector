@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.4.2",
   "exports": {
     ".": {
       "types": "./src/app.ts"
@@ -20,7 +21,9 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "bun run format:check && bun run typecheck && bun test"
+    "check": "bun run format:check && bun run typecheck && bun test",
+    "client:build": "bun run scripts/build-client.ts",
+    "client:verify": "bun run client:build && bun run scripts/verify-client.ts"
   },
   "dependencies": {
     "hono": "^4.13.12",

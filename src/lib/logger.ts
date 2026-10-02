@@ -1,7 +1,5 @@
 import pino, { type LevelWithSilent, type LoggerOptions } from "pino";
 
-export type Logger = pino.Logger;
-
 export type LoggerConfig = {
   level: LevelWithSilent;
   pretty: boolean;
@@ -22,6 +20,6 @@ export function buildLoggerOptions({
   };
 }
 
-export function createLogger(config: LoggerConfig): Logger {
+export function createLogger(config: LoggerConfig): pino.Logger {
   return pino(buildLoggerOptions(config));
 }

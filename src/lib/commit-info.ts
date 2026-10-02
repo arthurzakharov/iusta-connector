@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Logger } from "@/lib/logger";
+import type { Logger } from "@/lib/logger-types";
 
 export type CommitInfo = {
   hash: string;

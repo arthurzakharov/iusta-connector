@@ -18,7 +18,11 @@ if (!commitInfo) {
   );
 }
 
-const app = createApp({ logger, commitInfo });
+const app = createApp({
+  logger,
+  commitInfo,
+  allowedOrigins: env.ALLOWED_ORIGINS,
+});
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
 
 logger.info(
