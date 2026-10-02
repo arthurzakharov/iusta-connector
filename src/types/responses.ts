@@ -10,6 +10,11 @@ export type CommitInfo = {
   date: string;
 };
 
+export type ErrorResponse = {
+  error: string;
+  requestId: string;
+};
+
 export type HealthResponse = {
   status: "ok";
   commit: CommitInfo | null;
