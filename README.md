@@ -18,7 +18,27 @@ Connector between our frontend applications and iusta. Built with [Bun](https://
 | `bun run client:build`  | Build the frontend client package into `dist-client/`        |
 | `bun run client:verify` | Build + type-check the client as a frontend would            |
 
-Configuration is read from env vars and validated on startup (see `src/config/env.ts` and `.env.example`).
+## Configuration
+
+All configuration comes from env vars. Server settings are validated on startup in `src/config/env.ts`.
+
+| Variable               | Default                   | Set by                    | Description                                                     |
+| ---------------------- | ------------------------- | ------------------------- | --------------------------------------------------------------- |
+| `NODE_ENV`             | `development`             | Dockerfile (`production`) | `development` enables pretty logs                               |
+| `PORT`                 | `3000`                    | Dockerfile (`3000`)       | Port the server listens on                                      |
+| `LOG_LEVEL`            | `info`                    | Dockerfile (`info`)       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`  |
+| `GIT_COMMIT_HASH`      | none                      | Docker build arg          | Full commit hash                                                |
+| `GIT_COMMIT_MESSAGE`   | none                      | Docker build arg          | Commit subject                                                  |
+| `GIT_COMMIT_AUTHOR`    | none                      | Docker build arg          | Commit author name                                              |
+| `GIT_COMMIT_DATE`      | none                      | Docker build arg          | Commit date (ISO 8601)                                          |
+| `ALLOWED_ORIGINS`      | `[]` (no origins allowed) | Deployment                | Comma-separated frontend origins allowed to call the API (CORS) |
+| `GIT_REPOSITORY_NAME`  | none                      | Deployment                | Repository path on the host, e.g. `owner/name`                  |
+| `GIT_REPOSITORY_TOKEN` | none                      | Deployment                | Token with read-only access to repository contents              |
+
+- **Dockerfile:** sets `NODE_ENV`, `PORT` and `LOG_LEVEL` in the image. A deployment env var with the same name overrides them.
+- **Docker build args:** the build pipeline passes the four `GIT_COMMIT_*` values (`bun run docker:build` does this locally). They are baked into the image.
+- **Deployment:** must set `ALLOWED_ORIGINS` (otherwise browsers block every frontend request), `GIT_REPOSITORY_NAME` and `GIT_REPOSITORY_TOKEN` (store the token as a secret). They are read at runtime and are not part of the image.
+- **Local development:** no setup needed, all defaults work and commit info is read from the local git repository. To call the API from a local frontend, create a `.env` (git-ignored, loaded by Bun automatically) with e.g. `ALLOWED_ORIGINS=http://localhost:5173`.
 
 ## Endpoints
 
@@ -26,20 +46,11 @@ Configuration is read from env vars and validated on startup (see `src/config/en
 
 Commit info is resolved once at startup, in this order:
 
-1. all four `GIT_COMMIT_*` env vars (set as Docker build args by `bun run docker:build`)
+1. all four `GIT_COMMIT_*` env vars
 2. the local git repository (development)
-3. the remote repository API, looking up `GIT_COMMIT_HASH` in `GIT_REPOSITORY_NAME` (when only the hash is known, e.g. a deploy without `.git`)
+3. the remote repository API, looking up `GIT_COMMIT_HASH` in `GIT_REPOSITORY_NAME` (when only the hash is known)
 
 If none of these succeed, `commit` is `null` and a warning is logged at startup.
-
-| Variable               | Used by | Description                                                                 |
-| ---------------------- | ------- | --------------------------------------------------------------------------- |
-| `GIT_COMMIT_HASH`      | 1, 3    | Full commit hash                                                            |
-| `GIT_COMMIT_MESSAGE`   | 1       | Commit subject                                                              |
-| `GIT_COMMIT_AUTHOR`    | 1       | Commit author name                                                          |
-| `GIT_COMMIT_DATE`      | 1       | Commit date (ISO 8601)                                                      |
-| `GIT_REPOSITORY_NAME`       | 3       | Repository path on the host, e.g. `owner/name`                              |
-| `GIT_REPOSITORY_TOKEN` | 3       | Optional token with read-only access to repository contents (private repos) |
 
 The remote repository host (base URL, auth headers, endpoint paths, response shape) is configured in `src/api/repository-api.ts` — that is the only file to change when moving to another host.
 
