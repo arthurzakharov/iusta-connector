@@ -25,22 +25,14 @@ const envSchema = z
     GIT_COMMIT_MESSAGE: z.string().optional(),
     GIT_COMMIT_AUTHOR: z.string().optional(),
     GIT_COMMIT_DATE: z.string().optional(),
-    GIT_REPOSITORY_NAME: z.string().optional(),
-    GIT_REPOSITORY_TOKEN: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;
 
-    const missing = [
-      env.ALLOWED_ORIGINS.length === 0 && "ALLOWED_ORIGINS",
-      !env.GIT_REPOSITORY_NAME && "GIT_REPOSITORY_NAME",
-      !env.GIT_REPOSITORY_TOKEN && "GIT_REPOSITORY_TOKEN",
-    ].filter((key) => key !== false);
-
-    for (const key of missing) {
+    if (env.ALLOWED_ORIGINS.length === 0) {
       ctx.addIssue({
         code: "custom",
-        path: [key],
+        path: ["ALLOWED_ORIGINS"],
         message: "required in production",
       });
     }

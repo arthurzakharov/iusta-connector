@@ -15,14 +15,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY src ./src
 
-# Commit info is injected at build time (see `bun run docker:build`); kept last for layer caching.
+# Commit info is injected at build time (CI, or `bun run docker:build` locally); kept last for layer caching.
 ARG GIT_COMMIT_HASH=""
 ARG GIT_COMMIT_MESSAGE=""
 ARG GIT_COMMIT_AUTHOR=""
 ARG GIT_COMMIT_DATE=""
-# Render-only fallback: Render passes RENDER_GIT_COMMIT as a build arg. Remove when leaving Render.
-ARG RENDER_GIT_COMMIT=""
-ENV GIT_COMMIT_HASH=${GIT_COMMIT_HASH:-$RENDER_GIT_COMMIT} \
+ENV GIT_COMMIT_HASH=$GIT_COMMIT_HASH \
     GIT_COMMIT_MESSAGE=$GIT_COMMIT_MESSAGE \
     GIT_COMMIT_AUTHOR=$GIT_COMMIT_AUTHOR \
     GIT_COMMIT_DATE=$GIT_COMMIT_DATE
