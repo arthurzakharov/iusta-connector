@@ -6,7 +6,7 @@ import type { Logger } from "@/lib/logger-types";
 import { requestLogger } from "@/middleware/request-logger";
 import { createHealthRoutes } from "@/routes/health";
 
-export type AppDeps = {
+type AppDeps = {
   logger: Logger;
   commitInfo: CommitInfo | null;
   allowedOrigins?: string[];

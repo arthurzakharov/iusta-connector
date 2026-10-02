@@ -1,6 +1,6 @@
 import pino from "pino";
 
-export type LogEntry = Record<string, unknown> & { level: number; msg: string };
+type LogEntry = Record<string, unknown> & { level: number; msg: string };
 
 /** Logger that keeps emitted entries in memory so tests can assert on them. */
 export function createTestLogger(): {

@@ -80,7 +80,7 @@ export function commitInfoFromGit(cwd?: string): CommitInfo | null {
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
-export type GitHubCommitOptions = {
+type GitHubCommitOptions = {
   repoSlug: string;
   sha: string;
   token?: string | undefined;
@@ -152,7 +152,7 @@ export async function commitInfoFromGitHub({
   }
 }
 
-export type ResolveCommitInfoOptions = {
+type ResolveCommitInfoOptions = {
   cwd?: string;
   fetch?: FetchFn;
   logger?: Logger;
@@ -167,11 +167,12 @@ export type ResolveCommitInfoOptions = {
 export async function resolveCommitInfo(
   env: EnvSource,
   { cwd, fetch, logger }: ResolveCommitInfoOptions = {},
-): Promise<CommitInfo | null> {
+) {
   const local = commitInfoFromEnv(env) ?? commitInfoFromGit(cwd);
   if (local) return local;
 
   const { RENDER_GIT_REPO_SLUG, RENDER_GIT_COMMIT, GITHUB_TOKEN } = env;
+
   if (!RENDER_GIT_REPO_SLUG || !RENDER_GIT_COMMIT) return null;
 
   return commitInfoFromGitHub({
