@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
     "test": "bun test",
