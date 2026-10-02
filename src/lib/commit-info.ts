@@ -134,7 +134,7 @@ type ResolveCommitInfoParams = {
  * Get commit info. Resolution order:
  * 1. local Docker env vars (development)
  * 2. local git repository (development)
- * 3. remote repository API using GIT_COMMIT_HASH + GIT_REPOSITORY (when only the hash is known)
+ * 3. remote repository API using GIT_COMMIT_HASH + GIT_REPOSITORY_NAME (when only the hash is known)
  */
 export async function resolveCommitInfo(
   env: EnvSource,
@@ -144,12 +144,12 @@ export async function resolveCommitInfo(
 
   if (local) return local;
 
-  const { GIT_COMMIT_HASH, GIT_REPOSITORY, GIT_REPOSITORY_TOKEN } = env;
+  const { GIT_COMMIT_HASH, GIT_REPOSITORY_NAME, GIT_REPOSITORY_TOKEN } = env;
 
-  if (!GIT_COMMIT_HASH || !GIT_REPOSITORY) return null;
+  if (!GIT_COMMIT_HASH || !GIT_REPOSITORY_NAME) return null;
 
   return commitInfoFromRemote({
-    repository: GIT_REPOSITORY,
+    repository: GIT_REPOSITORY_NAME,
     hash: GIT_COMMIT_HASH,
     token: GIT_REPOSITORY_TOKEN,
     logger,

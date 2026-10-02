@@ -232,7 +232,7 @@ describe("commitInfoFromRemote", () => {
 
 describe("resolveCommitInfo", () => {
   const remoteEnv = {
-    GIT_REPOSITORY: "acme/repo",
+    GIT_REPOSITORY_NAME: "acme/repo",
     GIT_COMMIT_HASH: HASH,
   };
 
