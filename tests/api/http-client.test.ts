@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import {
   HttpClient,
+  HttpClientError,
   HttpError,
+  HttpNetworkError,
+  HttpTimeoutError,
   UnexpectedResponseError,
 } from "@/api/http-client";
 import { createTestLogger } from "@tests/helpers/logger";
@@ -133,13 +136,58 @@ describe("HttpClient", () => {
     expect(error.cause).toBeInstanceOf(SyntaxError);
   });
 
-  test("passes network errors through unchanged", async () => {
+  test("wraps network errors in HttpNetworkError", async () => {
     const { http } = setup(() => Promise.reject(new Error("network down")));
 
     const error = await http.get("/items/1", itemSchema).catch((e) => e);
 
-    expect(error).toBeInstanceOf(Error);
-    expect(error.message).toBe("network down");
+    expect(error).toBeInstanceOf(HttpNetworkError);
+    expect(error.name).toBe("HttpNetworkError");
+    expect(error.cause.message).toBe("network down");
+  });
+
+  test("wraps a connection dropped while reading the body in HttpNetworkError", async () => {
+    const { http } = setup(
+      () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error("connection reset"));
+            },
+          }),
+        ),
+    );
+
+    const error = await http.get("/items/1", itemSchema).catch((e) => e);
+
+    expect(error).toBeInstanceOf(HttpNetworkError);
+    expect(error.cause.message).toBe("connection reset");
+  });
+
+  test("wraps timeouts in HttpTimeoutError", async () => {
+    const { http } = setup(() =>
+      Promise.reject(new DOMException("timed out", "TimeoutError")),
+    );
+
+    const error = await http.get("/items/1", itemSchema).catch((e) => e);
+
+    expect(error).toBeInstanceOf(HttpTimeoutError);
+    expect(error.name).toBe("HttpTimeoutError");
+  });
+
+  test("every failure is an HttpClientError", async () => {
+    const responses = [
+      () => new Response("nope", { status: 500 }),
+      () => new Response("not json"),
+      () => Promise.reject(new Error("network down")),
+      () => Promise.reject(new DOMException("timed out", "TimeoutError")),
+    ];
+
+    for (const response of responses) {
+      const { http } = setup(response);
+      const error = await http.get("/items/1", itemSchema).catch((e) => e);
+      expect(error).toBeInstanceOf(HttpClientError);
+    }
   });
 });
 

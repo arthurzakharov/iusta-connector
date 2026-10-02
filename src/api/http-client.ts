@@ -24,21 +24,40 @@ type SendParams = RequestParams & {
   body?: unknown;
 };
 
-export class HttpError extends Error {
+export class HttpClientError extends Error {
+  public constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = new.target.name;
+  }
+}
+
+export class HttpError extends HttpClientError {
   public constructor(
     public readonly status: number,
     public readonly headers: Headers,
     public readonly body: string,
   ) {
     super(`request failed with status ${status}`);
-    this.name = "HttpError";
   }
 }
 
-export class UnexpectedResponseError extends Error {
+export class UnexpectedResponseError extends HttpClientError {
   public constructor(cause: unknown) {
     super("response body does not match the expected schema", { cause });
-    this.name = "UnexpectedResponseError";
+  }
+}
+
+export class HttpTimeoutError extends HttpClientError {
+  public constructor(cause: unknown) {
+    super("request timed out", { cause });
+  }
+}
+
+export class HttpNetworkError extends HttpClientError {
+  public constructor(cause: unknown) {
+    super("request failed before a complete response was received", {
+      cause,
+    });
   }
 }
 
@@ -117,6 +136,7 @@ export class HttpClient {
     const fetch = this.fetchFn;
 
     let res: Response;
+    let text: string;
     try {
       res = await fetch(url, {
         method,
@@ -128,15 +148,17 @@ export class HttpClient {
         ...(hasBody && { body: JSON.stringify(body) }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });
+      text = await res.text();
     } catch (err) {
       this.logger.warn(
         { method, url: this.logUrl(url), durationMs: this.since(start), err },
         "outgoing request failed",
       );
-      throw err;
+      throw isTimeout(err)
+        ? new HttpTimeoutError(err)
+        : new HttpNetworkError(err);
     }
 
-    const text = await res.text();
     const log = {
       method,
       url: this.logUrl(url),
@@ -179,4 +201,8 @@ export class HttpClient {
   private since(start: number): number {
     return Math.round((performance.now() - start) * 100) / 100;
   }
+}
+
+function isTimeout(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "TimeoutError";
 }

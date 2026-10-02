@@ -15,6 +15,7 @@
         "src/app.ts",
         "src/routes/**",
         "src/client.ts",
+        "src/middleware/validate.ts",
         "tests/**",
         "scripts/**"
       ],
