@@ -6,13 +6,8 @@ type StoppableServer = {
 
 const SHUTDOWN_SIGNALS = ["SIGINT", "SIGTERM"] as const;
 
-/** Below the usual platform grace period (e.g. 10s for `docker stop`) before a hard kill. */
 const DEFAULT_TIMEOUT_MS = 5000;
 
-/**
- * Stops accepting new connections, lets in-flight requests finish, then exits.
- * Connections still open after `timeoutMs` are closed, so a hanging request cannot block a deploy.
- */
 export function handleShutdownSignals(
   logger: Logger,
   server: StoppableServer,

@@ -1,6 +1,5 @@
 name: Publish client
 
-# Push a tag like `v0.2.0` to publish @arthurzakharov/iusta-connector-client@0.2.0 to GitHub Packages.
 on:
   push:
     tags: ["v*.*.*"]

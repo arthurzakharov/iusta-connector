@@ -1,8 +1,6 @@
 #!/bin/sh
-# Runs the same checks as CI before pushing. Skip with `git push --no-verify`.
 set -e
 
-# Git exports these to hooks; the tests run git in temp folders and must not inherit them.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 
 bun run check

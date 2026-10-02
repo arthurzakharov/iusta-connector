@@ -2,10 +2,6 @@ import type { Logger } from "@/lib/logger-types";
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
-/**
- * Anything with a zod-like parse; keeps this module free of a validation library dependency.
- * For endpoints without a response body (e.g. 204), pass a schema that accepts `undefined`, like `z.undefined()`.
- */
 type Schema<T> = { parse(data: unknown): T };
 
 type QueryValue = string | number | boolean | undefined;
@@ -18,7 +14,6 @@ type HttpClientConstructor = {
   fetch?: FetchFn;
 };
 
-/** Per-request options shared by all methods. `undefined` query values are left out. */
 type RequestParams = {
   query?: Record<string, QueryValue>;
   headers?: Record<string, string>;
@@ -29,9 +24,6 @@ type SendParams = RequestParams & {
   body?: unknown;
 };
 
-/**
- * Thrown for non-2xx responses. `body` is the raw response text, often the API's own error message.
- */
 export class HttpError extends Error {
   public constructor(
     public readonly status: number,
@@ -43,9 +35,6 @@ export class HttpError extends Error {
   }
 }
 
-/**
- * Thrown when a response body is not valid JSON or does not match the expected schema.
- */
 export class UnexpectedResponseError extends Error {
   public constructor(cause: unknown) {
     super("response body does not match the expected schema", { cause });
@@ -53,10 +42,6 @@ export class UnexpectedResponseError extends Error {
   }
 }
 
-/**
- * Preconfigured HTTP client for one API: base URL, default
- * headers and timeout are shared by every request.
- */
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly logger: Logger;
@@ -129,7 +114,6 @@ export class HttpClient {
     const url = this.buildUrl(path, query);
     const hasBody = body !== undefined;
     const start = performance.now();
-    // Called unbound: native fetch rejects a `this` other than the global object.
     const fetch = this.fetchFn;
 
     let res: Response;
@@ -187,7 +171,6 @@ export class HttpClient {
     return `${url}${url.includes("?") ? "&" : "?"}${qs}`;
   }
 
-  /** Query strings may carry identifiers or tokens, so logs only get the origin and path. */
   private logUrl(url: string): string {
     const { origin, pathname } = new URL(url);
     return `${origin}${pathname}`;
