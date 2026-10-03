@@ -12,3 +12,4 @@ scripts
 tsconfig.client.json
 .github
 .vscode
+dist

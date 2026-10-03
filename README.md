@@ -4,20 +4,21 @@ Connector between our frontend applications and iusta. Built with [Bun](https://
 
 ## Scripts
 
-| Command                 | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `bun install`           | Install dependencies                                         |
-| `bun run dev`           | Start with watch mode and pretty logs                        |
-| `bun run start`         | Start the server                                             |
-| `bun test`              | Run tests with coverage (fails below 100% lines/functions)   |
-| `bun run typecheck`     | Type-check with `tsc`                                        |
-| `bun run lint`          | Lint with oxlint (type-aware, see `.oxlintrc.json`)          |
-| `bun run format`        | Format all files with Prettier                               |
-| `bun run format:check`  | Verify formatting (for CI)                                   |
-| `bun run check`         | Format check + lint + typecheck + tests — run before pushing |
-| `bun run docker:build`  | Build the Docker image with the current commit info baked in |
-| `bun run client:build`  | Build the frontend client package into `dist-client/`        |
-| `bun run client:verify` | Build + type-check the client as a frontend would            |
+| Command                 | Description                                                          |
+| ----------------------- | -------------------------------------------------------------------- |
+| `bun install`           | Install dependencies                                                 |
+| `bun run dev`           | Start with watch mode and pretty logs                                |
+| `bun run start`         | Start the server                                                     |
+| `bun run build`         | Bundle the server into `dist/server.js` (what the Docker image runs) |
+| `bun test`              | Run tests with coverage (fails below 100% lines/functions)           |
+| `bun run typecheck`     | Type-check with `tsc`                                                |
+| `bun run lint`          | Lint with oxlint (type-aware, see `.oxlintrc.json`)                  |
+| `bun run format`        | Format all files with Prettier                                       |
+| `bun run format:check`  | Verify formatting (for CI)                                           |
+| `bun run check`         | Format check + lint + typecheck + tests — run before pushing         |
+| `bun run docker:build`  | Build the Docker image with the current commit info baked in         |
+| `bun run client:build`  | Build the frontend client package into `dist-client/`                |
+| `bun run client:verify` | Build + type-check the client as a frontend would                    |
 
 ## Git hooks
 
@@ -83,7 +84,7 @@ bun run docker:logs    # follow logs
 bun run docker:stop    # stop (container is removed automatically)
 ```
 
-The image runs with `NODE_ENV=production`, so `docker:run` passes the required deployment variable itself: `ALLOWED_ORIGINS=http://localhost:5173`, for a frontend dev server on the default Vite port.
+The image contains only the bundled `server.js` and its source map (no `src/` or `node_modules`), so stack traces still point at the `.ts` files. The bundle is not minified on purpose: minifying renames classes, which would break the error names in logs. The image runs with `NODE_ENV=production`, so `docker:run` passes the required deployment variable itself: `ALLOWED_ORIGINS=http://localhost:5173`, for a frontend dev server on the default Vite port.
 
 ## Deployment
 

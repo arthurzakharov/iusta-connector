@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
 const consumer = await mkdtemp(join(tmpdir(), "iusta-client-consumer-"));
+const tsc5 = join(root, "node_modules/typescript5/bin/tsc");
 
 const consumerSource = `
 import { createIustaClient, type HealthResponse, type IustaClient } from "@arthurzakharov/iusta-connector-client";
@@ -56,7 +57,7 @@ try {
       }),
     );
     await $`bunx --bun tsc -p ${consumer}`.cwd(root);
-    await $`bunx --bun -p typescript@5 tsc -p ${consumer}`.cwd(root);
+    await $`bun ${tsc5} -p ${consumer}`.cwd(root);
     console.log(
       `client types OK with TS 7 and TS 5 (moduleResolution: ${moduleResolution})`,
     );
