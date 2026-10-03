@@ -156,7 +156,7 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 
 **Structure**
 
-- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing, `types/` for types shared with the frontend client (import-free, so the client package ships no server code). File names are kebab-case.
+- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing, `types/` for types shared with the frontend client (they import only from `types/` or `hono`, so the client package ships no server code). File names are kebab-case.
 - Pass dependencies such as the logger as arguments (no singletons); the logger is always required.
 - Use a class only when there is shared state (e.g. `HttpClient`); mark members `public` or `private` explicitly, without `#` fields. Stateless logic stays in plain functions.
 - Await or return every promise **(enforced)**.
@@ -167,9 +167,9 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 
 1. **External API call** (if the endpoint needs one): add a method to the API's class in `src/api/` (e.g. `IustaApi`), built on `HttpClient`. Describe the external response with a zod schema there and return your own type, so the external shape never leaks into routes.
 2. **Response type**: add it to `src/types/responses.ts` (import-free), so frontends get it from the client package.
-3. **Route**: create `src/routes/<name>.ts` exporting a function that receives its dependencies (API class, logger) and returns a chained `new Hono()` router. Validate input with `validate("json" | "query" | "param", schema)` and read it with `c.req.valid(...)`.
+3. **Route**: create `src/routes/<name>.ts` exporting a function that receives its dependencies (API class) and returns a chained `new Hono<AppEnv>()` router. Log with `c.var.logger` (already bound to the request id) and call upstream through `http.forRequest({ logger: c.var.logger, requestId: c.var.requestId })`, so outgoing calls are logged under the same request id and IUSTA receives it as `X-Request-Id`. Validate input with `validate("json" | "query" | "param", schema)` and read it with `c.req.valid(...)`.
 4. **Mount** it in `src/app.ts` via `.route(...)` (keep it chained so `AppType` stays typed), passing the dependencies from `createApp`'s params; `server.ts` creates the real instances.
-5. **Errors**: let them propagate. Validation errors become `400`, `HttpClient` failures `502`/`504`, everything else `500` — see `src/middleware/error-handler.ts`. Catch an `HttpError` in a route only to give a specific status a meaning (e.g. upstream `404` → your `404`).
+5. **Errors**: let them propagate. Validation errors become `400`, `HttpClient` failures `502`/`504`, everything else `500` — see `src/middleware/error-handler.ts`. Catch an `HttpError` in a route only to give a specific status a meaning (e.g. upstream `404` → your `404`). Its `body` and `headers` are readable in code but are never written to logs, because they may contain case data.
 6. **Tests** under `tests/routes/`: pass a fake API class or an `HttpClient` with a fake `fetch` — no network. Coverage is enforced at 100%.
 
 ```ts

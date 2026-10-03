@@ -191,6 +191,40 @@ describe("HttpClient", () => {
   });
 });
 
+describe("HttpClient.forRequest", () => {
+  test("logs through the request logger and forwards the request id", async () => {
+    const { http, calls, entries, headers } = setup(() =>
+      Response.json({ id: 1 }),
+    );
+    const request = createTestLogger();
+
+    const scoped = http.forRequest({
+      logger: request.logger.child({ requestId: "req-1" }),
+      requestId: "req-1",
+    });
+    expect(await scoped.get("/items/1", itemSchema)).toEqual({ id: 1 });
+
+    expect(calls[0]?.url).toBe("https://api.example.com/items/1");
+    expect(headers().get("X-Request-Id")).toBe("req-1");
+    expect(headers().get("Authorization")).toBe("Bearer secret");
+    expect(calls[0]?.init?.signal).toBeInstanceOf(AbortSignal);
+    expect(entries).toHaveLength(0);
+    expect(request.entries[0]).toMatchObject({
+      msg: "outgoing request completed",
+      requestId: "req-1",
+    });
+  });
+
+  test("leaves the original client untouched", async () => {
+    const { http, headers } = setup(() => Response.json({ id: 1 }));
+
+    http.forRequest({ logger: createTestLogger().logger, requestId: "req-1" });
+    await http.get("/items/1", itemSchema);
+
+    expect(headers().has("X-Request-Id")).toBe(false);
+  });
+});
+
 describe("HttpClient logging", () => {
   test("logs successful requests at info with method, url, status and duration", async () => {
     const { http, entries } = setup(() => Response.json({ id: 1 }));

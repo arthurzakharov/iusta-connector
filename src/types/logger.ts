@@ -6,4 +6,6 @@ type Fn = {
 type Levels =
   "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
 
-export type Logger = Record<Levels, Fn>;
+export type Logger = Record<Levels, Fn> & {
+  child(bindings: Record<string, unknown>): Logger;
+};

@@ -1,10 +1,15 @@
-import type { Logger } from "@/lib/logger-types";
+import type { Logger } from "@/types/logger";
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
 type Schema<T> = { parse(data: unknown): T };
 
 type QueryValue = string | number | boolean | undefined;
+
+type RequestContext = {
+  logger: Logger;
+  requestId: string;
+};
 
 type HttpClientConstructor = {
   baseUrl: string;
@@ -32,12 +37,25 @@ export class HttpClientError extends Error {
 }
 
 export class HttpError extends HttpClientError {
+  readonly #headers: Headers;
+  readonly #body: string;
+
   public constructor(
     public readonly status: number,
-    public readonly headers: Headers,
-    public readonly body: string,
+    headers: Headers,
+    body: string,
   ) {
     super(`request failed with status ${status}`);
+    this.#headers = headers;
+    this.#body = body;
+  }
+
+  public get headers(): Headers {
+    return this.#headers;
+  }
+
+  public get body(): string {
+    return this.#body;
   }
 }
 
@@ -80,6 +98,16 @@ export class HttpClient {
     this.headers = headers;
     this.timeoutMs = timeoutMs;
     this.fetchFn = fetch;
+  }
+
+  public forRequest({ logger, requestId }: RequestContext): HttpClient {
+    return new HttpClient({
+      baseUrl: this.baseUrl,
+      logger,
+      headers: { ...this.headers, "X-Request-Id": requestId },
+      timeoutMs: this.timeoutMs,
+      fetch: this.fetchFn,
+    });
   }
 
   public get<T>(

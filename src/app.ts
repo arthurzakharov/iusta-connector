@@ -3,8 +3,9 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import type { CommitInfo } from "@/lib/commit-info";
+import type { AppEnv } from "@/types/app-env";
 import type { ErrorResponse } from "@/types/responses";
-import type { Logger } from "@/lib/logger-types";
+import type { Logger } from "@/types/logger";
 import { errorHandler } from "@/middleware/error-handler";
 import { requestLogger } from "@/middleware/request-logger";
 import { createHealthRoutes } from "@/routes/health";
@@ -20,7 +21,7 @@ export function createApp({
   commitInfo,
   allowedOrigins = [],
 }: CreateAppParams) {
-  const app = new Hono();
+  const app = new Hono<AppEnv>();
 
   app.use(requestId());
   app.use(secureHeaders());

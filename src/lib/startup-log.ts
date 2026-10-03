@@ -1,6 +1,6 @@
 import type { Env } from "@/config/env";
 import type { CommitInfo } from "@/lib/commit-info";
-import type { Logger } from "@/lib/logger-types";
+import type { Logger } from "@/types/logger";
 
 type LogServerStartParams = {
   env: Env;

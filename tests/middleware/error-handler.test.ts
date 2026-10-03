@@ -83,17 +83,21 @@ describe("errorHandler", () => {
     });
   }
 
-  test("logs the upstream status and body of HttpError", async () => {
+  test("logs the upstream status of HttpError but never its body or headers", async () => {
     const { request, entries } = setup(
-      new HttpError(503, new Headers(), '{"message":"maintenance"}'),
+      new HttpError(
+        503,
+        new Headers({ "Set-Cookie": "session=s-secret" }),
+        '{"client":"Jane Doe"}',
+      ),
     );
 
     await request();
 
-    expect(entries[0]?.err).toMatchObject({
-      status: 503,
-      body: '{"message":"maintenance"}',
-    });
+    expect(entries[0]?.err).toMatchObject({ status: 503 });
+    const logged = JSON.stringify(entries);
+    expect(logged).not.toContain("Jane Doe");
+    expect(logged).not.toContain("s-secret");
   });
 
   test("answers other errors with 500", async () => {

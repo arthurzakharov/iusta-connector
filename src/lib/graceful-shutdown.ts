@@ -1,4 +1,4 @@
-import type { Logger } from "@/lib/logger-types";
+import type { Logger } from "@/types/logger";
 
 type StoppableServer = {
   stop(closeActiveConnections?: boolean): Promise<void>;

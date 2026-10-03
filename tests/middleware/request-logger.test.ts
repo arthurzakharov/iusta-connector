@@ -13,7 +13,11 @@ function setup() {
     .use(requestLogger(logger))
     .get("/ok", (c) => c.text("ok"))
     .get("/bad", (c) => c.text("bad", 400))
-    .get("/fail", (c) => c.text("fail", 503));
+    .get("/fail", (c) => c.text("fail", 503))
+    .get("/log", (c) => {
+      c.get("logger").info("inside handler");
+      return c.text("ok");
+    });
   return { app, entries };
 }
 
@@ -33,6 +37,21 @@ describe("requestLogger", () => {
       status: 200,
     });
     expect(entries[0]?.durationMs).toBeNumber();
+  });
+
+  test("gives handlers a logger bound to the request id", async () => {
+    const { app, entries } = setup();
+
+    await app.request("/log", { headers: { "X-Request-Id": "req-2" } });
+
+    expect(entries[0]).toMatchObject({
+      msg: "inside handler",
+      requestId: "req-2",
+    });
+    expect(entries[1]).toMatchObject({
+      msg: "request completed",
+      requestId: "req-2",
+    });
   });
 
   test("logs 4xx responses at warn level", async () => {
