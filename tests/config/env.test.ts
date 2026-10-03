@@ -77,7 +77,7 @@ describe("parseEnv", () => {
         ALLOWED_ORIGINS: "not-a-url",
       }),
     ).toThrow(
-      /Invalid environment variables[\s\S]*PORT[\s\S]*LOG_LEVEL[\s\S]*LOG_FORMAT[\s\S]*ALLOWED_ORIGINS/,
+      /Invalid env variables[\s\S]*PORT[\s\S]*LOG_LEVEL[\s\S]*LOG_FORMAT[\s\S]*ALLOWED_ORIGINS/,
     );
   });
 });
