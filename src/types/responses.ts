@@ -1,8 +1,5 @@
-export type CommitInfo = {
-  hash: string;
+export type PublicCommitInfo = {
   shortHash: string;
-  message: string;
-  author: string;
   date: string;
 };
 
@@ -19,5 +16,5 @@ export type ErrorResponse = {
 
 export type HealthResponse = {
   status: "ok";
-  commit: CommitInfo | null;
+  commit: PublicCommitInfo | null;
 };

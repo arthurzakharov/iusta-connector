@@ -53,7 +53,7 @@ All configuration comes from env vars. Server settings are validated on startup 
 
 ## Endpoints
 
-- `GET /` and `GET /health` — `{ status: "ok", commit: { hash, shortHash, message, author, date } | null }`
+- `GET /` and `GET /health` — `{ status: "ok", commit: { shortHash, date } | null }`. The full hash, message and author are only written to the startup log, not exposed publicly.
 - Errors — `{ error, requestId, issues? }` (`ErrorResponse` in the client). `requestId` matches the `X-Request-Id` response header and the server logs, so a frontend can show it for support requests:
 
   | Status | When                                                                                        |
@@ -121,7 +121,7 @@ Published to GitHub Packages as `@arthurzakharov/iusta-connector-client` (types 
 
    const api = createIustaClient(import.meta.env.VITE_CONNECTOR_URL);
    const res = await api.health.$get();
-   const body = await res.json(); // { status: "ok"; commit: CommitInfo | null }
+   const body = await res.json(); // { status: "ok"; commit: PublicCommitInfo | null }
    ```
 
 The frontend origin must be listed in the connector's `ALLOWED_ORIGINS` env var (comma-separated), otherwise browsers block the requests (CORS).

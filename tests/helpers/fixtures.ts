@@ -1,4 +1,4 @@
-import type { CommitInfo } from "@/types/responses";
+import type { CommitInfo } from "@/lib/commit-info";
 
 export const commitInfoFixture: CommitInfo = {
   hash: "0123456789abcdef0123456789abcdef01234567",

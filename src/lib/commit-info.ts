@@ -1,4 +1,10 @@
-import type { CommitInfo } from "@/types/responses";
+export type CommitInfo = {
+  hash: string;
+  shortHash: string;
+  message: string;
+  author: string;
+  date: string;
+};
 
 type CommitEnv = {
   GIT_COMMIT_HASH?: string | undefined;

@@ -15,7 +15,10 @@ describe("health routes", () => {
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({
         status: "ok",
-        commit: commitInfoFixture,
+        commit: {
+          shortHash: commitInfoFixture.shortHash,
+          date: commitInfoFixture.date,
+        },
       });
     });
   }

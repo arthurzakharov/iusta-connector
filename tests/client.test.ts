@@ -17,6 +17,12 @@ describe("createIustaClient", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ status: "ok", commit: commitInfoFixture });
+    expect(body).toEqual({
+      status: "ok",
+      commit: {
+        shortHash: commitInfoFixture.shortHash,
+        date: commitInfoFixture.date,
+      },
+    });
   });
 });

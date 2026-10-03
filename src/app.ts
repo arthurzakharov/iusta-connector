@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
-import type { CommitInfo, ErrorResponse } from "@/types/responses";
+import type { CommitInfo } from "@/lib/commit-info";
+import type { ErrorResponse } from "@/types/responses";
 import type { Logger } from "@/lib/logger-types";
 import { errorHandler } from "@/middleware/error-handler";
 import { requestLogger } from "@/middleware/request-logger";
@@ -39,8 +40,8 @@ export function createApp({
 
 export type AppType = ReturnType<typeof createApp>;
 export type {
-  CommitInfo,
   ErrorResponse,
   HealthResponse,
+  PublicCommitInfo,
   ValidationIssue,
 } from "@/types/responses";

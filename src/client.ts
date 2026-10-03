@@ -3,9 +3,9 @@ import type { AppType } from "@/app";
 
 export type {
   AppType,
-  CommitInfo,
   ErrorResponse,
   HealthResponse,
+  PublicCommitInfo,
   ValidationIssue,
 } from "@/app";
 

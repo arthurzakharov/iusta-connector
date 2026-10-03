@@ -14,7 +14,7 @@ const commitInfo = {
 };
 
 describe("logServerStart", () => {
-  test("logs the short commit hash without a warning when commit info is available", () => {
+  test("logs the full commit info without a warning when commit info is available", () => {
     const { logger, entries } = createTestLogger();
 
     logServerStart(logger, {
@@ -28,7 +28,7 @@ describe("logServerStart", () => {
       msg: "server started",
       port: env.PORT,
       env: env.NODE_ENV,
-      commit: "abc1234",
+      commit: commitInfo,
       allowedOrigins: env.ALLOWED_ORIGINS,
     });
   });

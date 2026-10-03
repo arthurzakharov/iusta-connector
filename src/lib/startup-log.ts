@@ -1,5 +1,5 @@
 import type { Env } from "@/config/env";
-import type { CommitInfo } from "@/types/responses";
+import type { CommitInfo } from "@/lib/commit-info";
 import type { Logger } from "@/lib/logger-types";
 
 type LogServerStartParams = {
@@ -15,7 +15,7 @@ export function logServerStart(
     {
       port: env.PORT,
       env: env.NODE_ENV,
-      commit: commitInfo?.shortHash ?? null,
+      commit: commitInfo,
       allowedOrigins: env.ALLOWED_ORIGINS,
     },
     "server started",
