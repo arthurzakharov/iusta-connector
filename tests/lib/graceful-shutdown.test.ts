@@ -57,6 +57,23 @@ describe("handleShutdownSignals", () => {
     expect(entries).toHaveLength(1);
   });
 
+  test("logs and exits with 1 when the server fails to stop", async () => {
+    const { logger, entries } = createTestLogger();
+    const stop = mock(() => Promise.reject(new Error("stuck")));
+    handleShutdownSignals(logger, { stop });
+
+    process.emit("SIGTERM");
+    await Bun.sleep(0);
+
+    expect(entries[1]).toMatchObject({
+      level: 50,
+      msg: "server did not stop cleanly",
+      err: { message: "stuck" },
+    });
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(exitSpy).not.toHaveBeenCalledWith(0);
+  });
+
   test("handles each signal only once", async () => {
     const { logger } = createTestLogger();
     const stop = mock(() => Promise.resolve());

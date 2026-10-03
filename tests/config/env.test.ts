@@ -30,6 +30,21 @@ describe("parseEnv", () => {
     });
   });
 
+  test("treats empty GIT_COMMIT_* values as unset", () => {
+    const env = parseEnv({
+      GIT_COMMIT_HASH: "",
+      GIT_COMMIT_MESSAGE: "",
+      GIT_COMMIT_AUTHOR: "",
+      GIT_COMMIT_DATE: "",
+    });
+
+    expect(env.GIT_COMMIT_HASH).toBeUndefined();
+    expect(env.GIT_COMMIT_MESSAGE).toBeUndefined();
+    expect(env.GIT_COMMIT_AUTHOR).toBeUndefined();
+    expect(env.GIT_COMMIT_DATE).toBeUndefined();
+    expect(parseEnv({ GIT_COMMIT_HASH: "abc" }).GIT_COMMIT_HASH).toBe("abc");
+  });
+
   test("requires ALLOWED_ORIGINS in production", () => {
     expect(() => parseEnv({ NODE_ENV: "production" })).toThrow(
       /required in production[\s\S]*ALLOWED_ORIGINS/,

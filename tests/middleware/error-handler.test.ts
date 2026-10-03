@@ -6,9 +6,9 @@ import {
   HttpNetworkError,
   HttpTimeoutError,
   UnexpectedResponseError,
-} from "@/api/http-client";
+  ValidationError,
+} from "@/errors";
 import { errorHandler } from "@/middleware/error-handler";
-import { ValidationError } from "@/middleware/validate";
 import { createTestLogger } from "@tests/helpers/logger";
 
 function setup(error: Error) {
@@ -98,6 +98,33 @@ describe("errorHandler", () => {
     const logged = JSON.stringify(entries);
     expect(logged).not.toContain("Jane Doe");
     expect(logged).not.toContain("s-secret");
+  });
+
+  test("answers passthrough HttpErrors with the upstream status and a generic message", async () => {
+    const { request, entries } = setup(
+      new HttpError(404, new Headers(), '{"client":"Jane Doe"}', true),
+    );
+
+    const res = await request();
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({
+      error: "Not Found",
+      requestId: "req-1",
+    });
+    expect(entries).toHaveLength(0);
+  });
+
+  test("falls back to a generic message for unknown passthrough statuses", async () => {
+    const { request } = setup(new HttpError(499, new Headers(), "", true));
+
+    const res = await request();
+
+    expect(res.status).toBe(499);
+    expect(await res.json()).toEqual({
+      error: "Upstream Error",
+      requestId: "req-1",
+    });
   });
 
   test("answers other errors with 500", async () => {

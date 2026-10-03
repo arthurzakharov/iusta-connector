@@ -1,7 +1,13 @@
 import type { ErrorHandler } from "hono";
-import { HttpClientError, HttpTimeoutError } from "@/api/http-client";
+import type { ClientErrorStatusCode } from "hono/utils/http-status";
+import { STATUS_CODES } from "node:http";
+import {
+  HttpClientError,
+  HttpError,
+  HttpTimeoutError,
+  ValidationError,
+} from "@/errors";
 import type { Logger } from "@/types/logger";
-import { ValidationError } from "@/middleware/validate";
 import type { ErrorResponse } from "@/types/responses";
 
 export function errorHandler(logger: Logger): ErrorHandler {
@@ -12,6 +18,13 @@ export function errorHandler(logger: Logger): ErrorHandler {
       return c.json<ErrorResponse>(
         { error: "Bad Request", requestId, issues: err.issues },
         400,
+      );
+    }
+    if (err instanceof HttpError && err.passthrough) {
+      const status = err.status as ClientErrorStatusCode;
+      return c.json<ErrorResponse>(
+        { error: STATUS_CODES[status] ?? "Upstream Error", requestId },
+        status,
       );
     }
     if (err instanceof HttpTimeoutError) {

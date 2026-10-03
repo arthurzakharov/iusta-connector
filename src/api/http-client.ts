@@ -1,3 +1,10 @@
+import type { ClientErrorStatusCode } from "hono/utils/http-status";
+import {
+  HttpError,
+  HttpNetworkError,
+  HttpTimeoutError,
+  UnexpectedResponseError,
+} from "@/errors";
 import type { Logger } from "@/types/logger";
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
@@ -22,62 +29,13 @@ type HttpClientConstructor = {
 type RequestParams = {
   query?: Record<string, QueryValue>;
   headers?: Record<string, string>;
+  passthrough?: ClientErrorStatusCode[];
 };
 
 type SendParams = RequestParams & {
   method: string;
   body?: unknown;
 };
-
-export class HttpClientError extends Error {
-  public constructor(message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = new.target.name;
-  }
-}
-
-export class HttpError extends HttpClientError {
-  readonly #headers: Headers;
-  readonly #body: string;
-
-  public constructor(
-    public readonly status: number,
-    headers: Headers,
-    body: string,
-  ) {
-    super(`request failed with status ${status}`);
-    this.#headers = headers;
-    this.#body = body;
-  }
-
-  public get headers(): Headers {
-    return this.#headers;
-  }
-
-  public get body(): string {
-    return this.#body;
-  }
-}
-
-export class UnexpectedResponseError extends HttpClientError {
-  public constructor(cause: unknown) {
-    super("response body does not match the expected schema", { cause });
-  }
-}
-
-export class HttpTimeoutError extends HttpClientError {
-  public constructor(cause: unknown) {
-    super("request timed out", { cause });
-  }
-}
-
-export class HttpNetworkError extends HttpClientError {
-  public constructor(cause: unknown) {
-    super("request failed before a complete response was received", {
-      cause,
-    });
-  }
-}
 
 export class HttpClient {
   private readonly baseUrl: string;
@@ -156,7 +114,7 @@ export class HttpClient {
   private async send<T>(
     path: string,
     schema: Schema<T>,
-    { method, body, query, headers }: SendParams,
+    { method, body, query, headers, passthrough = [] }: SendParams,
   ): Promise<T> {
     const url = this.buildUrl(path, query);
     const hasBody = body !== undefined;
@@ -196,7 +154,12 @@ export class HttpClient {
 
     if (!res.ok) {
       this.logger.warn(log, "outgoing request completed");
-      throw new HttpError(res.status, res.headers, text);
+      throw new HttpError(
+        res.status,
+        res.headers,
+        text,
+        (passthrough as number[]).includes(res.status),
+      );
     }
     this.logger.info(log, "outgoing request completed");
 

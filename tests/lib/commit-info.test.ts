@@ -76,8 +76,8 @@ describe("commitInfoFromGit", () => {
     expect(info).toMatchObject({
       message: "chore: initial commit",
       author: "Git Author",
-      date: "2026-09-29T08:30:00Z",
     });
+    expect(Date.parse(info!.date)).toBe(Date.parse("2026-09-29T08:30:00Z"));
     expect(info?.hash).toMatch(/^[0-9a-f]{40}$/);
     expect(info?.shortHash).toBe(info!.hash.slice(0, 7));
   });

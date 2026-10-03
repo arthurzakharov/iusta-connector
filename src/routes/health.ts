@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { CommitInfo } from "@/lib/commit-info";
+import type { CommitInfo } from "@/types/commit-info";
 import type { HealthResponse } from "@/types/responses";
 
 export function createHealthRoutes(commitInfo: CommitInfo | null) {

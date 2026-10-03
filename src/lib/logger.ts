@@ -13,7 +13,6 @@ export function buildLoggerOptions({
     level,
     base: { service: "iusta-connector" },
     timestamp: pino.stdTimeFunctions.isoTime,
-    redact: ["req.headers.authorization", "req.headers.cookie"],
     ...(pretty && {
       transport: { target: "pino-pretty", options: { colorize: true } },
     }),

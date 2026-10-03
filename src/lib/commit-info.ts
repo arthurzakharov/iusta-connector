@@ -1,17 +1,13 @@
-export type CommitInfo = {
-  hash: string;
-  shortHash: string;
-  message: string;
-  author: string;
-  date: string;
-};
+import type { Env } from "@/config/env";
+import type { CommitInfo } from "@/types/commit-info";
 
-type CommitEnv = {
-  GIT_COMMIT_HASH?: string | undefined;
-  GIT_COMMIT_MESSAGE?: string | undefined;
-  GIT_COMMIT_AUTHOR?: string | undefined;
-  GIT_COMMIT_DATE?: string | undefined;
-};
+type CommitEnv = Pick<
+  Env,
+  | "GIT_COMMIT_HASH"
+  | "GIT_COMMIT_MESSAGE"
+  | "GIT_COMMIT_AUTHOR"
+  | "GIT_COMMIT_DATE"
+>;
 
 function toCommitInfo(
   hash: string,

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const optionalString = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().optional(),
+);
+
 const envSchema = z
   .object({
     NODE_ENV: z
@@ -21,10 +26,10 @@ const envSchema = z
       )
       .pipe(z.array(z.url()))
       .transform((urls) => urls.map((url) => new URL(url).origin)),
-    GIT_COMMIT_HASH: z.string().optional(),
-    GIT_COMMIT_MESSAGE: z.string().optional(),
-    GIT_COMMIT_AUTHOR: z.string().optional(),
-    GIT_COMMIT_DATE: z.string().optional(),
+    GIT_COMMIT_HASH: optionalString,
+    GIT_COMMIT_MESSAGE: optionalString,
+    GIT_COMMIT_AUTHOR: optionalString,
+    GIT_COMMIT_DATE: optionalString,
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;

@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
+import { HttpClient } from "@/api/http-client";
 import {
-  HttpClient,
   HttpClientError,
   HttpError,
   HttpNetworkError,
   HttpTimeoutError,
   UnexpectedResponseError,
-} from "@/api/http-client";
+} from "@/errors";
 import { createTestLogger } from "@tests/helpers/logger";
 
 const itemSchema = z.object({ id: z.number() });
@@ -116,6 +116,22 @@ describe("HttpClient", () => {
     expect(error.status).toBe(404);
     expect(error.headers.get("x-request")).toBe("1");
     expect(error.body).toBe('{"message":"case not found"}');
+  });
+
+  test("marks listed upstream statuses for passthrough", async () => {
+    const { http } = setup(() => new Response("missing", { status: 404 }));
+
+    const listed = await http
+      .get("/items/1", itemSchema, { passthrough: [404, 422] })
+      .catch((e) => e);
+    const unlisted = await http
+      .get("/items/1", itemSchema, { passthrough: [422] })
+      .catch((e) => e);
+    const none = await http.get("/items/1", itemSchema).catch((e) => e);
+
+    expect(listed.passthrough).toBe(true);
+    expect(unlisted.passthrough).toBe(false);
+    expect(none.passthrough).toBe(false);
   });
 
   test("throws UnexpectedResponseError when the body does not match the schema", async () => {

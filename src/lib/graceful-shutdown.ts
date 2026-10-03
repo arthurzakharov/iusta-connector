@@ -16,7 +16,13 @@ export function handleShutdownSignals(
   for (const signal of SHUTDOWN_SIGNALS) {
     process.once(signal, async () => {
       logger.info({ signal }, "shutting down");
-      await stopServer(logger, server, timeoutMs);
+      try {
+        await stopServer(logger, server, timeoutMs);
+      } catch (err) {
+        logger.error({ err }, "server did not stop cleanly");
+        process.exit(1);
+        return;
+      }
       process.exit(0);
     });
   }

@@ -56,13 +56,14 @@ All configuration comes from env vars. Server settings are validated on startup 
 - `GET /` and `GET /health` — `{ status: "ok", commit: { shortHash, date } | null }`. The full hash, message and author are only written to the startup log, not exposed publicly.
 - Errors — `{ error, requestId, issues? }` (`ErrorResponse` in the client). `requestId` matches the `X-Request-Id` response header and the server logs, so a frontend can show it for support requests:
 
-  | Status | When                                                                                        |
-  | ------ | ------------------------------------------------------------------------------------------- |
-  | `400`  | Request failed validation; `issues` lists `{ path, message }` per field (e.g. `json.title`) |
-  | `404`  | Unknown route                                                                               |
-  | `502`  | An external API returned an error, an unexpected body, or could not be reached              |
-  | `504`  | An external API did not answer within the `HttpClient` timeout                              |
-  | `500`  | Any other unhandled error                                                                   |
+  | Status | When                                                                                             |
+  | ------ | ------------------------------------------------------------------------------------------------ |
+  | `400`  | Request failed validation; `issues` lists `{ path, message }` per field (e.g. `json.title`)      |
+  | `4xx`  | An external API answered with a status the route passes through (e.g. `404`), see "Errors" below |
+  | `404`  | Unknown route                                                                                    |
+  | `502`  | An external API returned an error, an unexpected body, or could not be reached                   |
+  | `504`  | An external API did not answer within the `HttpClient` timeout                                   |
+  | `500`  | Any other unhandled error                                                                        |
 
 Every response also carries standard security headers (`X-Content-Type-Options`, `Strict-Transport-Security`, `X-Frame-Options`, …) from Hono's `secureHeaders()`.
 
@@ -156,7 +157,7 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 
 **Structure**
 
-- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing, `types/` for types shared with the frontend client (they import only from `types/` or `hono`, so the client package ships no server code). File names are kebab-case.
+- Folders: `api/` for requests to external services, `lib/` for app logic, `routes/` and `middleware/` for Hono, `config/` for env parsing, `errors.ts` for the error classes, `types/` for types shared with the frontend client (they import only from `types/` or `hono`, so the client package ships no server code). File names are kebab-case.
 - Pass dependencies such as the logger as arguments (no singletons); the logger is always required.
 - Use a class only when there is shared state (e.g. `HttpClient`); mark members `public` or `private` explicitly, without `#` fields. Stateless logic stays in plain functions.
 - Await or return every promise **(enforced)**.
@@ -169,7 +170,7 @@ Rules marked **(enforced)** fail `bun run check`, and therefore CI.
 2. **Response type**: add it to `src/types/responses.ts` (import-free), so frontends get it from the client package.
 3. **Route**: create `src/routes/<name>.ts` exporting a function that receives its dependencies (API class) and returns a chained `new Hono<AppEnv>()` router. Log with `c.var.logger` (already bound to the request id) and call upstream through `http.forRequest({ logger: c.var.logger, requestId: c.var.requestId })`, so outgoing calls are logged under the same request id and IUSTA receives it as `X-Request-Id`. Validate input with `validate("json" | "query" | "param", schema)` and read it with `c.req.valid(...)`.
 4. **Mount** it in `src/app.ts` via `.route(...)` (keep it chained so `AppType` stays typed), passing the dependencies from `createApp`'s params; `server.ts` creates the real instances.
-5. **Errors**: let them propagate. Validation errors become `400`, `HttpClient` failures `502`/`504`, everything else `500` — see `src/middleware/error-handler.ts`. Catch an `HttpError` in a route only to give a specific status a meaning (e.g. upstream `404` → your `404`). Its `body` and `headers` are readable in code but are never written to logs, because they may contain case data.
+5. **Errors**: let them propagate. Validation errors become `400`, `HttpClient` failures `502`/`504`, everything else `500` — see `src/middleware/error-handler.ts`. To pass an upstream client error on to the caller, list it per call: `http.get(path, schema, { passthrough: [404] })`. The caller then gets that status with a generic message (e.g. `Not Found`), never the upstream body. Only list statuses that mean the same thing for your endpoint (an upstream `404` on a side lookup is still your `502`). An `HttpError`'s `body` and `headers` are readable in code but are never written to logs, because they may contain case data.
 6. **Tests** under `tests/routes/`: pass a fake API class or an `HttpClient` with a fake `fetch` — no network. Coverage is enforced at 100%.
 
 ```ts
